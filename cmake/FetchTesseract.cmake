@@ -78,6 +78,6 @@ elseif(APPLE)
   target_include_directories(Tesseract SYSTEM INTERFACE ${tesseract_SOURCE_DIR}/include)
 else()
   target_link_libraries(Tesseract INTERFACE ${tesseract_SOURCE_DIR}/lib/libtesseract.a
-                                            ${tesseract_SOURCE_DIR}/lib/lib/libleptonica.a)
+                                            ${tesseract_SOURCE_DIR}/lib/libleptonica.a)
   target_include_directories(Tesseract SYSTEM INTERFACE ${tesseract_SOURCE_DIR}/include)
 endif()
