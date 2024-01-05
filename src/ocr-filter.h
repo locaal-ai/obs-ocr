@@ -1,3 +1,6 @@
+#ifndef OCR_FILTER_H
+#define OCR_FILTER_H
+
 #include <obs-module.h>
 
 #ifdef __cplusplus
@@ -18,3 +21,5 @@ void ocr_filter_video_render(void *data, gs_effect_t *_effect);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* OCR_FILTER_H */
