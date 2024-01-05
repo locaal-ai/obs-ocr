@@ -13,7 +13,8 @@ if(CUSTOM_OPENCV_URL STREQUAL "")
 else()
   message(STATUS "Using custom OpenCV: ${CUSTOM_OPENCV_URL}")
   if(CUSTOM_OPENCV_HASH STREQUAL "")
-    message(FATAL_ERROR "CUSTOM_OPENCV_HASH not found. Both of CUSTOM_OPENCV_URL and CUSTOM_OPENCV_HASH must be present!")
+    message(
+      FATAL_ERROR "CUSTOM_OPENCV_HASH not found. Both of CUSTOM_OPENCV_URL and CUSTOM_OPENCV_HASH must be present!")
   else()
     set(USE_PREDEFINED_OPENCV OFF)
   endif()
@@ -74,8 +75,7 @@ if(MSVC)
               ${opencv_SOURCE_DIR}/x64/vc17/staticlib/zlib.lib)
   target_include_directories(OpenCV SYSTEM INTERFACE ${opencv_SOURCE_DIR}/include)
 else()
-  target_link_libraries(
-    OpenCV INTERFACE ${opencv_SOURCE_DIR}/lib/libopencv_imgproc.a
-                     ${opencv_SOURCE_DIR}/lib/libopencv_core.a)
+  target_link_libraries(OpenCV INTERFACE ${opencv_SOURCE_DIR}/lib/libopencv_imgproc.a
+                                         ${opencv_SOURCE_DIR}/lib/libopencv_core.a)
   target_include_directories(OpenCV SYSTEM INTERFACE ${opencv_SOURCE_DIR}/include/opencv4)
 endif()

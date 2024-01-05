@@ -1,6 +1,3 @@
-#ifdef _WIN32
-#include <wchar.h>
-#endif // _WIN32
 
 #include <opencv2/imgproc.hpp>
 
@@ -12,6 +9,8 @@
 #include <mutex>
 
 #include <QString>
+
+#include <util/bmem.h>
 
 #include <plugin-support.h>
 #include "filter-data.h"
@@ -68,9 +67,9 @@ obs_properties_t *ocr_filter_properties(void *data)
 				     "scoreboard");
 
 	// Add a property for the output text source
-	obs_property_t *sources = obs_properties_add_list(props, "text_sources",
-							  "Output text source", OBS_COMBO_TYPE_LIST,
-							  OBS_COMBO_FORMAT_STRING);
+	obs_property_t *sources = obs_properties_add_list(
+		props, "text_sources", "Output text source",
+		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
 	// Add a "none" option
 	obs_property_list_add_string(sources, "No output", "none");
 	// Add the sources
@@ -135,21 +134,14 @@ void *ocr_filter_create(obs_data_t *settings, obs_source_t *source)
 
 	tf->source = source;
 	tf->texrender = gs_texrender_create(GS_BGRA, GS_ZS_NONE);
-	tf->output_source_name = bstrdup(obs_data_get_string(settings, "text_sources"));
+	tf->output_source_name =
+		bstrdup(obs_data_get_string(settings, "text_sources"));
 	tf->output_source = nullptr;
 	// initialize the mutex
 	tf->output_source_mutex = new std::mutex();
 
-	// get the model file path from the module
-#if _WIN32
-	tf->modelFilepath = obs_module_file("crnn_cs.onnx");
+	// get the models folder path from the module
 	tf->tesseractTraineddataFilepath = obs_module_file("tessdata");
-	tf->vocabularyFilepath = obs_module_file("alphabet_36.txt");
-#else
-	tf->modelFilepath = obs_module_file("crnn_cs.onnx");
-	tf->tesseractTraineddataFilepath = obs_module_file("tessdata");
-	tf->vocabularyFilepath = obs_module_file("alphabet_94.txt");
-#endif
 
 	tf->tesseract_model = nullptr;
 
@@ -170,6 +162,9 @@ void ocr_filter_destroy(void *data)
 		}
 		obs_leave_graphics();
 
+		if (tf->tesseractTraineddataFilepath != nullptr) {
+			bfree(tf->tesseractTraineddataFilepath);
+		}
 		if (tf->tesseract_model != nullptr) {
 			tf->tesseract_model->End();
 			delete tf->tesseract_model;

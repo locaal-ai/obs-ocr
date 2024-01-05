@@ -98,11 +98,13 @@ void acquire_weak_output_source_ref(struct filter_data *usd)
 		usd->output_source = obs_source_get_weak_source(source);
 		obs_source_release(source);
 		if (!usd->output_source) {
-			obs_log(LOG_ERROR, "failed to get weak source for text source %s",
+			obs_log(LOG_ERROR,
+				"failed to get weak source for text source %s",
 				usd->output_source_name);
 		}
 	} else {
-		obs_log(LOG_ERROR, "text source '%s' not found", usd->output_source_name);
+		obs_log(LOG_ERROR, "text source '%s' not found",
+			usd->output_source_name);
 	}
 }
 
@@ -153,16 +155,19 @@ bool add_sources_to_list(void *list_property, obs_source_t *source)
 	return true;
 }
 
-void update_text_source_on_settings(struct filter_data *usd, obs_data_t *settings)
+void update_text_source_on_settings(struct filter_data *usd,
+				    obs_data_t *settings)
 {
 	// update the text source
-	const char *new_text_source_name = obs_data_get_string(settings, "text_sources");
+	const char *new_text_source_name =
+		obs_data_get_string(settings, "text_sources");
 	obs_weak_source_t *old_weak_text_source = NULL;
 
 	if (!is_valid_output_source_name(new_text_source_name)) {
 		// new selected text source is not valid, release the old one
 		if (usd->output_source) {
-			std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
+			std::lock_guard<std::mutex> lock(
+				*usd->output_source_mutex);
 			old_weak_text_source = usd->output_source;
 			usd->output_source = nullptr;
 		}
@@ -173,10 +178,12 @@ void update_text_source_on_settings(struct filter_data *usd, obs_data_t *setting
 	} else {
 		// new selected text source is valid, check if it's different from the old one
 		if (usd->output_source_name == nullptr ||
-		    strcmp(new_text_source_name, usd->output_source_name) != 0) {
+		    strcmp(new_text_source_name, usd->output_source_name) !=
+			    0) {
 			// new text source is different from the old one, release the old one
 			if (usd->output_source) {
-				std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
+				std::lock_guard<std::mutex> lock(
+					*usd->output_source_mutex);
 				old_weak_text_source = usd->output_source;
 				usd->output_source = nullptr;
 			}
@@ -188,4 +195,3 @@ void update_text_source_on_settings(struct filter_data *usd, obs_data_t *setting
 		obs_weak_source_release(old_weak_text_source);
 	}
 }
-

@@ -53,10 +53,7 @@ endif()
 include(cmake/FetchTesseract.cmake)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Tesseract)
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c
-  src/obs-utils.cpp
-  src/tesseract-ocr-utils.cpp
-  src/ocr-filter.cpp
-  )
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c src/obs-utils.cpp src/tesseract-ocr-utils.cpp
+                                             src/ocr-filter.cpp)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

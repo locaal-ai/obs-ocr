@@ -13,7 +13,9 @@ if(CUSTOM_TESSERACT_URL STREQUAL "")
 else()
   message(STATUS "Using custom Tesseract: ${CUSTOM_TESSERACT_URL}")
   if(CUSTOM_TESSERACT_HASH STREQUAL "")
-    message(FATAL_ERROR "CUSTOM_TESSERACT_HASH not found. Both of CUSTOM_TESSERACT_URL and CUSTOM_TESSERACT_HASH must be present!")
+    message(
+      FATAL_ERROR
+        "CUSTOM_TESSERACT_HASH not found. Both of CUSTOM_TESSERACT_URL and CUSTOM_TESSERACT_HASH must be present!")
   else()
     set(USE_PREDEFINED_TESSERACT OFF)
   endif()
@@ -67,14 +69,15 @@ FetchContent_MakeAvailable(tesseract)
 
 add_library(Tesseract INTERFACE)
 if(MSVC)
-  target_link_libraries(
-    Tesseract
-    INTERFACE ${tesseract_SOURCE_DIR}/x64/vc17/staticlib/tesseract.lib)
+  target_link_libraries(Tesseract INTERFACE ${tesseract_SOURCE_DIR}/lib/tesseract53.lib
+                                            ${tesseract_SOURCE_DIR}/lib/leptonica-1.84.1.lib)
+  target_include_directories(Tesseract SYSTEM INTERFACE ${tesseract_SOURCE_DIR}/include)
+elseif(APPLE)
+  target_link_libraries(Tesseract INTERFACE ${tesseract_SOURCE_DIR}/lib/libtesseract.a
+                                            ${tesseract_SOURCE_DIR}/lib/libleptonica.a)
   target_include_directories(Tesseract SYSTEM INTERFACE ${tesseract_SOURCE_DIR}/include)
 else()
-  target_link_libraries(
-    Tesseract INTERFACE ${tesseract_SOURCE_DIR}/lib/libtesseract.a
-    ${tesseract_SOURCE_DIR}/lib/libleptonica.a
-    )
+  target_link_libraries(Tesseract INTERFACE ${tesseract_SOURCE_DIR}/lib/libtesseract.a
+                                            ${tesseract_SOURCE_DIR}/lib/lib/libleptonica.a)
   target_include_directories(Tesseract SYSTEM INTERFACE ${tesseract_SOURCE_DIR}/include)
 endif()

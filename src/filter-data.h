@@ -36,15 +36,7 @@ struct filter_data {
 	char *output_source_name = nullptr;
 	std::mutex *output_source_mutex = nullptr;
 
-#if _WIN32
-	const wchar_t *modelFilepath = nullptr;
-	const wchar_t *tesseractTraineddataFilepath = nullptr;
-	const wchar_t *vocabularyFilepath = nullptr;
-#else
-	const char *modelFilepath = nullptr;
-	const char *tesseractTraineddataFilepath = nullptr;
-	const char *vocabularyFilepath = nullptr;
-#endif
+	char *tesseractTraineddataFilepath = nullptr;
 };
 
 #endif /* FILTERDATA_H */
