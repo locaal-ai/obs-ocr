@@ -149,10 +149,7 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	// Update the output text source
 	update_text_source_on_settings(tf, settings);
 
-	// Get the page segmentation mode
 	tf->pageSegmentationMode = (int)obs_data_get_int(settings, "page_segmentation_mode");
-
-	// Get the language
 	tf->language = obs_data_get_string(settings, "language");
 	tf->char_whitelist = obs_data_get_string(settings, "char_whitelist");
 	tf->user_patterns = obs_data_get_string(settings, "user_patterns");
