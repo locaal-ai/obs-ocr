@@ -7,6 +7,7 @@
 #include <fstream>
 #include <new>
 #include <mutex>
+#include <filesystem>
 
 #include <QString>
 
@@ -93,8 +94,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 	obs_properties_add_text(props, "user_patterns", "User patterns", OBS_TEXT_MULTILINE);
 
 	// Add conf thershold property
-	obs_properties_add_float_slider(props, "conf_threshold", obs_module_text("ConfThreshold"),
-					0.0, 100.0, 0.1);
+	obs_properties_add_int_slider(props, "conf_threshold", obs_module_text("ConfThreshold"),
+					0, 100, 1);
 
 	// Add property to enable or disable the smoothing filter
 	obs_property_t *enable_smoothing_property = obs_properties_add_bool(
@@ -134,7 +135,7 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_string(
 		settings, "char_whitelist",
 		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:;!?-()[]{}<>|/@#$%&*+=_~");
-	obs_data_set_default_double(settings, "conf_threshold", 50.0);
+	obs_data_set_default_int(settings, "conf_threshold", 50);
 	obs_data_set_default_string(settings, "user_patterns", "");
 	obs_data_set_default_bool(settings, "enable_smoothing", false);
 	obs_data_set_default_int(settings, "word_length", 5);
@@ -155,7 +156,7 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->language = obs_data_get_string(settings, "language");
 	tf->char_whitelist = obs_data_get_string(settings, "char_whitelist");
 	tf->user_patterns = obs_data_get_string(settings, "user_patterns");
-	tf->conf_threshold = obs_data_get_double(settings, "conf_threshold");
+	tf->conf_threshold = (int)obs_data_get_int(settings, "conf_threshold");
 	tf->enable_smoothing = obs_data_get_bool(settings, "enable_smoothing");
 	tf->word_length = obs_data_get_int(settings, "word_length");
 	tf->window_size = obs_data_get_int(settings, "window_size");

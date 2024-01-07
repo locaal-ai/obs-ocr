@@ -29,7 +29,7 @@ struct filter_data {
 	int pageSegmentationMode;
 	std::string char_whitelist;
 	std::string user_patterns;
-	float conf_threshold;
+	int conf_threshold;
 	bool enable_smoothing;
 	std::unique_ptr<CharacterBasedSmoothingFilter> smoothing_filter;
 	size_t word_length;

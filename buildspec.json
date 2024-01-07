@@ -38,7 +38,7 @@
     },
     "name": "obs-ocr",
     "displayName": "OBS OCR Plugin",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": "Roy Shilkrot",
     "website": "https://github.com/occ-ai",
     "email": "roy.shil@gmail.com",

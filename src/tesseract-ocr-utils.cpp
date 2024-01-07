@@ -79,12 +79,9 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
 				      (int)imageBGRA.step);
 	std::string recognitionResult = std::string(tf->tesseract_model->GetUTF8Text());
 	// get the confidence of the recognition result
-	float confidence = tf->tesseract_model->MeanTextConf();
-	obs_log(LOG_DEBUG, "OCR confidence: %f", confidence);
+	const int confidence = tf->tesseract_model->MeanTextConf();
 
 	if (confidence < tf->conf_threshold) {
-		obs_log(LOG_DEBUG,
-			"OCR confidence is lower than the threshold, returning empty string");
 		return "";
 	}
 
@@ -100,10 +97,10 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
 	return recognitionResult;
 }
 
-CharacterBasedSmoothingFilter::CharacterBasedSmoothingFilter(size_t word_length, size_t window_size)
-	: word_length(word_length),
-	  window_size(window_size),
-	  readings(word_length, std::deque<char>(window_size))
+CharacterBasedSmoothingFilter::CharacterBasedSmoothingFilter(size_t word_length_, size_t window_size_)
+	: word_length(word_length_),
+	  window_size(window_size_),
+	  readings(word_length_, std::deque<char>(window_size_))
 {
 }
 
