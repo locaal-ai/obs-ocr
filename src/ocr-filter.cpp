@@ -94,8 +94,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 	obs_properties_add_text(props, "user_patterns", "User patterns", OBS_TEXT_MULTILINE);
 
 	// Add conf thershold property
-	obs_properties_add_int_slider(props, "conf_threshold", obs_module_text("ConfThreshold"),
-					0, 100, 1);
+	obs_properties_add_int_slider(props, "conf_threshold", obs_module_text("ConfThreshold"), 0,
+				      100, 1);
 
 	// Add property to enable or disable the smoothing filter
 	obs_property_t *enable_smoothing_property = obs_properties_add_bool(

@@ -97,7 +97,8 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
 	return recognitionResult;
 }
 
-CharacterBasedSmoothingFilter::CharacterBasedSmoothingFilter(size_t word_length_, size_t window_size_)
+CharacterBasedSmoothingFilter::CharacterBasedSmoothingFilter(size_t word_length_,
+							     size_t window_size_)
 	: word_length(word_length_),
 	  window_size(window_size_),
 	  readings(word_length_, std::deque<char>(window_size_))
