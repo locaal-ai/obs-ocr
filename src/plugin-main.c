@@ -32,8 +32,7 @@ MODULE_EXPORT const char *obs_module_description(void)
 bool obs_module_load(void)
 {
 	obs_register_source(&ocr_filter_info);
-	obs_log(LOG_INFO, "OCR plugin loaded successfully (version %s)",
-		PLUGIN_VERSION);
+	obs_log(LOG_INFO, "OCR plugin loaded successfully (version %s)", PLUGIN_VERSION);
 	return true;
 }
 

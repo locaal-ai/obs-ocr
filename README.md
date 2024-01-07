@@ -41,16 +41,21 @@ Bring AI to your OBS! Be a x10 streamer and content creator with AI tools:
 ### Code Walkthrough
 TODO: Will be provided shortly.
 
-Features:
-- Add OCR Filter to any source with image or video output
-- Choose from English model or Scoreboard model
-- Output OCR result to an OBS Text Source
+### Features
+Available now:
+ - Add OCR Filter to any source with image or video output
+ - Choose from English model or Scoreboard model
+ - Output OCR result to an OBS Text Source
+ - Choose the segmentation mode: Word, Line, Page, etc.
+ - "Semantic Smoothing": getting more consistent outputs with higher accuracy and confidence by "averaging" several text outputs
 
 Coming soon:
-- More languages built-in (pretrained Tesseract models)
-- Allowing external models
-- More output formats (Markdown, slim, reStructured, HAML, etc.)
-- Output to more built-in OBS sources (Image, etc.)
+ - More languages built-in (pretrained Tesseract models)
+ - Allowing external model files
+ - More output capabilities: Parsing, formatting
+ - Output to more built-in OBS sources (Image, etc.)
+ - Extracting text from complex image layouts
+ - Different timing modes: per X-frames, per X-milliseconds, etc.
 
 Check out our other plugins:
 - [Background Removal](https://github.com/occ-ai/obs-backgroundremoval) removes background from webcam without a green screen.
