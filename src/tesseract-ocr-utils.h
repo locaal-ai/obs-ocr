@@ -3,7 +3,23 @@
 
 #include "filter-data.h"
 
+#include <deque>
+#include <string>
+
 void initialize_tesseract_ocr(filter_data *tf);
 std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA);
+std::string strip(const std::string &str);
+
+class CharacterBasedSmoothingFilter {
+public:
+	CharacterBasedSmoothingFilter(size_t word_length, size_t window_size = 10);
+
+	std::string add_reading(const std::string &word);
+
+private:
+	size_t word_length;
+	size_t window_size;
+	std::vector<std::deque<char>> readings;
+};
 
 #endif /* TESSERACT_OCR_UTILS_H */

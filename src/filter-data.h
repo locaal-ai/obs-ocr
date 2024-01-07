@@ -10,6 +10,8 @@
 #include <mutex>
 #include <string>
 
+class CharacterBasedSmoothingFilter;
+
 /**
   * @brief The filter_data struct
   *
@@ -23,8 +25,15 @@ struct filter_data {
 
 	cv::Mat inputBGRA;
 	tesseract::TessBaseAPI *tesseract_model;
-	const char *language;
+	std::string language;
 	int pageSegmentationMode;
+	std::string char_whitelist;
+	std::string user_patterns;
+	float conf_threshold;
+	bool enable_smoothing;
+	std::unique_ptr<CharacterBasedSmoothingFilter> smoothing_filter;
+	size_t word_length;
+	size_t window_size;
 
 	bool isDisabled;
 
