@@ -88,10 +88,12 @@ obs_properties_t *ocr_filter_properties(void *data)
 	}
 
 	// Add character whitelist
-	obs_properties_add_text(props, "char_whitelist", "Char whitelist", OBS_TEXT_DEFAULT);
+	obs_properties_add_text(props, "char_whitelist", obs_module_text("CharWhitelist"),
+				OBS_TEXT_DEFAULT);
 
 	// Add user patterns multiline text input
-	obs_properties_add_text(props, "user_patterns", "User patterns", OBS_TEXT_MULTILINE);
+	obs_properties_add_text(props, "user_patterns", obs_module_text("UserPatterns"),
+				OBS_TEXT_MULTILINE);
 
 	// Add conf thershold property
 	obs_properties_add_int_slider(props, "conf_threshold", obs_module_text("ConfThreshold"), 0,
@@ -108,12 +110,12 @@ obs_properties_t *ocr_filter_properties(void *data)
 	obs_property_set_modified_callback(enable_smoothing_property, enable_smoothing_modified);
 
 	// Add a property for the output text source
-	obs_property_t *sources = obs_properties_add_list(props, "text_sources",
-							  "Output text source", OBS_COMBO_TYPE_LIST,
-							  OBS_COMBO_FORMAT_STRING);
+	obs_property_t *sources =
+		obs_properties_add_list(props, "text_sources", obs_module_text("OutputTextSource"),
+					OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
 
 	// Add a "none" option
-	obs_property_list_add_string(sources, "No output", "none");
+	obs_property_list_add_string(sources, obs_module_text("NoOutput"), "none");
 	// Add the sources
 	obs_enum_sources(add_sources_to_list, sources);
 
