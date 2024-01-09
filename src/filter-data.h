@@ -10,6 +10,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <condition_variable>
 
 class CharacterBasedSmoothingFilter;
 

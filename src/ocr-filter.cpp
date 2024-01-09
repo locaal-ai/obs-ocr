@@ -69,16 +69,17 @@ obs_properties_t *ocr_filter_properties(void *data)
 
 	obs_property_set_modified_callback(
 		obs_properties_get(props, "advanced_settings"),
-		[](obs_properties_t *props, obs_property_t *property, obs_data_t *settings) {
+		[](obs_properties_t *props_modified, obs_property_t *property,
+		   obs_data_t *settings) {
 			bool advanced_settings = obs_data_get_bool(settings, "advanced_settings");
 			for (const char *prop :
 			     {"page_segmentation_mode", "char_whitelist", "conf_threshold",
 			      "user_patterns", "enable_smoothing", "word_length", "window_size"}) {
-				obs_property_set_visible(obs_properties_get(props, prop),
+				obs_property_set_visible(obs_properties_get(props_modified, prop),
 							 advanced_settings);
 			}
 			if (advanced_settings) {
-				enable_smoothing_modified(props, nullptr, settings);
+				enable_smoothing_modified(props_modified, nullptr, settings);
 			}
 			UNUSED_PARAMETER(property);
 			return true;
