@@ -44,6 +44,46 @@ obs_properties_t *ocr_filter_properties(void *data)
 {
 	obs_properties_t *props = obs_properties_create();
 
+	// Add language property, list selection from "eng" and "scoreboard"
+	obs_property *lang_list =
+		obs_properties_add_list(props, "language", obs_module_text("Language"),
+					OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+
+	// scan the tessdata folder for files using std::filesystem
+	std::string tessdata_folder = obs_module_file("tessdata");
+	obs_log(LOG_INFO, "Scanning tessdata folder: %s", tessdata_folder.c_str());
+	for (const auto &entry : std::filesystem::directory_iterator(tessdata_folder)) {
+		std::string filename = entry.path().filename().string();
+		if (filename.find(".traineddata") != std::string::npos) {
+			obs_log(LOG_INFO, "Found traineddata file: %s", filename.c_str());
+			std::string language = filename.substr(0, filename.find(".traineddata"));
+			obs_property_list_add_string(lang_list, language.c_str(), language.c_str());
+		}
+	}
+
+	// Add update timer property
+	obs_properties_add_int(props, "update_timer", obs_module_text("UpdateTimer"), 1, 100000, 1);
+
+	// add advanced settings checkbox
+	obs_properties_add_bool(props, "advanced_settings", obs_module_text("AdvancedSettings"));
+
+	obs_property_set_modified_callback(
+		obs_properties_get(props, "advanced_settings"),
+		[](obs_properties_t *props, obs_property_t *property, obs_data_t *settings) {
+			bool advanced_settings = obs_data_get_bool(settings, "advanced_settings");
+			for (const char *prop :
+			     {"page_segmentation_mode", "char_whitelist", "conf_threshold",
+			      "user_patterns", "enable_smoothing", "word_length", "window_size"}) {
+				obs_property_set_visible(obs_properties_get(props, prop),
+							 advanced_settings);
+			}
+			if (advanced_settings) {
+				enable_smoothing_modified(props, nullptr, settings);
+			}
+			UNUSED_PARAMETER(property);
+			return true;
+		});
+
 	// Add page segmentation mode property
 	obs_property_t *psm_list = obs_properties_add_list(props, "page_segmentation_mode",
 							   obs_module_text("PageSegmentationMode"),
@@ -63,29 +103,6 @@ obs_properties_t *ocr_filter_properties(void *data)
 	obs_property_list_add_int(psm_list, "Sparse text", (long long)tesseract::PSM_SPARSE_TEXT);
 	obs_property_list_add_int(psm_list, "Sparse text with orientation",
 				  (long long)tesseract::PSM_SPARSE_TEXT_OSD);
-
-	// Add language property, list selection from "eng" and "scoreboard"
-	obs_property *lang_list =
-		obs_properties_add_list(props, "language", obs_module_text("Language"),
-					OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
-
-	// scan the tessdata folder for files using std::filesystem
-	std::string tessdata_folder = obs_module_file("tessdata");
-	obs_log(LOG_INFO, "Scanning tessdata folder: %s", tessdata_folder.c_str());
-	std::vector<std::string> tessdata_files;
-	for (const auto &entry : std::filesystem::directory_iterator(tessdata_folder)) {
-		std::string filename = entry.path().filename().string();
-		if (filename.find(".traineddata") != std::string::npos) {
-			obs_log(LOG_INFO, "Found traineddata file: %s", filename.c_str());
-			tessdata_files.push_back(filename);
-		}
-	}
-
-	// Add the found traineddata files to the language list
-	for (const auto &filename : tessdata_files) {
-		std::string language = filename.substr(0, filename.find(".traineddata"));
-		obs_property_list_add_string(lang_list, language.c_str(), language.c_str());
-	}
 
 	// Add character whitelist
 	obs_properties_add_text(props, "char_whitelist", obs_module_text("CharWhitelist"),
@@ -131,8 +148,10 @@ obs_properties_t *ocr_filter_properties(void *data)
 
 void ocr_filter_defaults(obs_data_t *settings)
 {
-	obs_data_set_default_int(settings, "page_segmentation_mode", tesseract::PSM_SINGLE_WORD);
+	obs_data_set_default_int(settings, "update_timer", 100);
 	obs_data_set_default_string(settings, "language", "eng");
+	obs_data_set_default_bool(settings, "advanced_settings", false);
+	obs_data_set_default_int(settings, "page_segmentation_mode", tesseract::PSM_SINGLE_WORD);
 	obs_data_set_default_string(settings, "text_sources", "none");
 	obs_data_set_default_string(
 		settings, "char_whitelist",
@@ -159,6 +178,7 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->enable_smoothing = obs_data_get_bool(settings, "enable_smoothing");
 	tf->word_length = obs_data_get_int(settings, "word_length");
 	tf->window_size = obs_data_get_int(settings, "window_size");
+	tf->update_timer_ms = (uint32_t)obs_data_get_int(settings, "update_timer");
 
 	// Initialize the Tesseract OCR model
 	initialize_tesseract_ocr(tf);
@@ -184,6 +204,7 @@ void *ocr_filter_create(obs_data_t *settings, obs_source_t *source)
 	struct filter_data *tf = new (data) filter_data();
 
 	tf->source = source;
+	tf->unique_id = obs_source_get_uuid(source);
 	tf->texrender = gs_texrender_create(GS_BGRA, GS_ZS_NONE);
 	tf->output_source_name = bstrdup(obs_data_get_string(settings, "text_sources"));
 	tf->output_source = nullptr;
@@ -212,6 +233,8 @@ void ocr_filter_destroy(void *data)
 		}
 		obs_leave_graphics();
 
+		stop_and_join_tesseract_thread(tf);
+
 		if (tf->tesseractTraineddataFilepath != nullptr) {
 			bfree(tf->tesseractTraineddataFilepath);
 		}
@@ -228,59 +251,6 @@ void ocr_filter_destroy(void *data)
 		tf->~filter_data();
 		bfree(tf);
 	}
-}
-
-static std::string processImageForOCR(struct filter_data *tf, const cv::Mat &imageBGRA)
-{
-	std::string recognitionResult = run_tesseract_ocr(tf, imageBGRA);
-
-	return recognitionResult;
-}
-
-void ocr_filter_video_tick(void *data, float seconds)
-{
-	struct filter_data *tf = reinterpret_cast<filter_data *>(data);
-
-	if (tf->isDisabled) {
-		return;
-	}
-
-	if (!obs_source_enabled(tf->source)) {
-		return;
-	}
-
-	if (tf->inputBGRA.empty()) {
-		return;
-	}
-
-	cv::Mat imageBGRA;
-	{
-		std::unique_lock<std::mutex> lock(tf->inputBGRALock, std::try_to_lock);
-		if (!lock.owns_lock()) {
-			return;
-		}
-		imageBGRA = tf->inputBGRA.clone();
-	}
-
-	try {
-		// Process the image
-		std::string ocr_result = processImageForOCR(tf, imageBGRA);
-
-		if (ocr_result.empty()) {
-			obs_log(LOG_DEBUG, "OCR failed to process image.");
-			return;
-		}
-
-		if (is_valid_output_source_name(tf->output_source_name)) {
-			// If an output source is selected - send the results there
-			setTextCallback(ocr_result, tf);
-		}
-	} catch (const std::exception &e) {
-		obs_log(LOG_ERROR, "%s", e.what());
-		return;
-	}
-
-	UNUSED_PARAMETER(seconds);
 }
 
 void ocr_filter_video_render(void *data, gs_effect_t *_effect)

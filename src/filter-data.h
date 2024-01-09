@@ -9,6 +9,7 @@
 
 #include <mutex>
 #include <string>
+#include <thread>
 
 class CharacterBasedSmoothingFilter;
 
@@ -20,6 +21,7 @@ struct filter_data {
 	std::string modelSelection;
 
 	obs_source_t *source;
+	std::string unique_id;
 	gs_texrender_t *texrender;
 	gs_stagesurf_t *stagesurface;
 
@@ -34,11 +36,16 @@ struct filter_data {
 	std::unique_ptr<CharacterBasedSmoothingFilter> smoothing_filter;
 	size_t word_length;
 	size_t window_size;
+	uint32_t update_timer_ms;
 
 	bool isDisabled;
 
 	std::mutex inputBGRALock;
 	std::mutex outputLock;
+	std::mutex tesseract_mutex;
+	bool tesseract_thread_run;
+	std::condition_variable tesseract_thread_cv;
+	std::thread tesseract_thread;
 
 	// Text source to output the text to
 	obs_weak_source_t *output_source = nullptr;

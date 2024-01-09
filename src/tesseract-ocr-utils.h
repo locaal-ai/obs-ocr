@@ -9,6 +9,8 @@
 void initialize_tesseract_ocr(filter_data *tf);
 std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA);
 std::string strip(const std::string &str);
+void stop_and_join_tesseract_thread(struct filter_data *tf);
+void tesseract_thread(void *data);
 
 class CharacterBasedSmoothingFilter {
 public:
