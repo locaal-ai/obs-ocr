@@ -12,6 +12,5 @@ struct obs_source_info ocr_filter_info = {
 	.update = ocr_filter_update,
 	.activate = ocr_filter_activate,
 	.deactivate = ocr_filter_deactivate,
-	.video_tick = ocr_filter_video_tick,
 	.video_render = ocr_filter_video_render,
 };

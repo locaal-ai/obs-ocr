@@ -13,21 +13,72 @@
 #include <deque>
 #include <stdexcept>
 #include <algorithm>
+#include <thread>
+
+inline uint64_t get_time_ns(void)
+{
+	return std::chrono::duration_cast<std::chrono::nanoseconds>(
+		       std::chrono::system_clock::now().time_since_epoch())
+		.count();
+}
 
 void initialize_tesseract_ocr(filter_data *tf)
 {
 	// Load model
 	obs_log(LOG_INFO, "Loading tesseract model from: %s", tf->tesseractTraineddataFilepath);
 	try {
+		stop_and_join_tesseract_thread(tf);
+
 		if (tf->tesseract_model != nullptr) {
 			tf->tesseract_model->End();
 			delete tf->tesseract_model;
 			tf->tesseract_model = nullptr;
 		}
 
+		char **configs = nullptr;
+		int configs_size = 0;
+
+		// if the user patterns are not empty, apply them
+		if (!tf->user_patterns.empty()) {
+			check_plugin_config_folder_exists();
+			// save the user patterns to a file in the module's config folder
+			std::string filename = "user-patterns-" + tf->unique_id + ".txt";
+			std::string user_patterns_filepath =
+				obs_module_config_path(filename.c_str());
+			obs_log(LOG_INFO, "Saving user patterns to: %s",
+				user_patterns_filepath.c_str());
+			std::ofstream user_patterns_file(user_patterns_filepath);
+			user_patterns_file << tf->user_patterns;
+			user_patterns_file.close();
+
+			// create a .config file pointing to the patterns file
+			filename = "user-patterns" + tf->unique_id + ".config";
+			std::string patterns_config_filepath =
+				obs_module_config_path(filename.c_str());
+			obs_log(LOG_INFO, "Saving user patterns config to: %s",
+				patterns_config_filepath.c_str());
+			std::ofstream patterns_config_file(patterns_config_filepath);
+			patterns_config_file << "user_patterns_file " << user_patterns_filepath
+					     << "\n";
+			patterns_config_file.close();
+
+			// add the config file to the configs array
+			configs_size = 1;
+			configs = new char *[configs_size];
+			configs[0] = new char[patterns_config_filepath.length() + 1];
+			strcpy(configs[0], patterns_config_filepath.c_str());
+		}
+
 		tf->tesseract_model = new tesseract::TessBaseAPI();
+
 		// set tesseract page segmentation mode to single word
-		tf->tesseract_model->Init(tf->tesseractTraineddataFilepath, tf->language.c_str());
+		int retval = tf->tesseract_model->Init(tf->tesseractTraineddataFilepath,
+						       tf->language.c_str(),
+						       tesseract::OEM_LSTM_ONLY, configs,
+						       configs_size, nullptr, nullptr, false);
+		if (retval != 0) {
+			throw std::runtime_error("Failed to initialize tesseract model");
+		}
 		tf->tesseract_model->SetPageSegMode(
 			static_cast<tesseract::PageSegMode>(tf->pageSegmentationMode));
 
@@ -35,26 +86,14 @@ void initialize_tesseract_ocr(filter_data *tf)
 		tf->tesseract_model->SetVariable("tessedit_char_whitelist",
 						 tf->char_whitelist.c_str());
 
-		// if the user patterns are not empty, apply them
-		if (!tf->user_patterns.empty()) {
-			check_plugin_config_folder_exists();
-			// save the user patterns to a file in the module's config folder
-			std::string user_patterns_filepath =
-				obs_module_config_path("user-patterns.txt");
-			obs_log(LOG_INFO, "Saving user patterns to: %s",
-				user_patterns_filepath.c_str());
-			std::ofstream user_patterns_file(user_patterns_filepath);
-			user_patterns_file << tf->user_patterns;
-			user_patterns_file.close();
-			// apply the user patterns file
-			tf->tesseract_model->SetVariable("user_patterns_file",
-							 user_patterns_filepath.c_str());
-		}
-
 		if (tf->enable_smoothing) {
 			tf->smoothing_filter = std::make_unique<CharacterBasedSmoothingFilter>(
 				tf->word_length, tf->window_size);
 		}
+
+		// start the thread
+		std::thread new_thread(tesseract_thread, tf);
+		tf->tesseract_thread.swap(new_thread);
 	} catch (std::exception &e) {
 		obs_log(LOG_ERROR, "Failed to load tesseract model: %s", e.what());
 		return;
@@ -77,7 +116,13 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
 	// run the tesseract model
 	tf->tesseract_model->SetImage(imageBGRA.data, imageBGRA.cols, imageBGRA.rows, 4,
 				      (int)imageBGRA.step);
-	std::string recognitionResult = std::string(tf->tesseract_model->GetUTF8Text());
+	char *text = tf->tesseract_model->GetUTF8Text();
+	if (text == nullptr) {
+		return "";
+	}
+	std::string recognitionResult = std::string(text);
+	delete[] text;
+
 	// get the confidence of the recognition result
 	const int confidence = tf->tesseract_model->MeanTextConf();
 
@@ -134,4 +179,88 @@ std::string CharacterBasedSmoothingFilter::add_reading(const std::string &inWord
 	}
 
 	return smoothed_word;
+}
+
+void stop_and_join_tesseract_thread(struct filter_data *tf)
+{
+	{
+		std::lock_guard<std::mutex> lock(tf->tesseract_mutex);
+		if (!tf->tesseract_thread_run) {
+			// Thread is already stopped
+			return;
+		}
+		tf->tesseract_thread_run = false;
+	}
+	tf->tesseract_thread_cv.notify_all();
+	if (tf->tesseract_thread.joinable()) {
+		tf->tesseract_thread.join();
+	}
+}
+
+// Tesseract thread function
+void tesseract_thread(void *data)
+{
+	filter_data *tf = reinterpret_cast<filter_data *>(data);
+
+	{
+		std::lock_guard<std::mutex> lock(tf->tesseract_mutex);
+		tf->tesseract_thread_run = true;
+	}
+
+	obs_log(LOG_INFO, "Starting Tesseract thread, update timer: %d", tf->update_timer_ms);
+
+	while (true) {
+		{
+			std::lock_guard<std::mutex> lock(tf->tesseract_mutex);
+			if (!tf->tesseract_thread_run) {
+				break;
+			}
+		}
+
+		// time the operation
+		uint64_t request_start_time_ns = get_time_ns();
+
+		// Send the image to the Tesseract OCR model
+		cv::Mat imageBGRA;
+		{
+			std::unique_lock<std::mutex> lock(tf->inputBGRALock, std::try_to_lock);
+			if (!lock.owns_lock()) {
+				return;
+			}
+			imageBGRA = tf->inputBGRA.clone();
+		}
+
+		if (!imageBGRA.empty()) {
+			try {
+				// Process the image
+				std::string ocr_result = run_tesseract_ocr(tf, imageBGRA);
+
+				if (!ocr_result.empty() &&
+				    is_valid_output_source_name(tf->output_source_name)) {
+					// If an output source is selected - send the results there
+					setTextCallback(ocr_result, tf);
+				}
+			} catch (const std::exception &e) {
+				obs_log(LOG_ERROR, "%s", e.what());
+			}
+		}
+
+		// time the request, calculate the remaining time and sleep
+		const uint64_t request_end_time_ns = get_time_ns();
+		const uint64_t request_time_ns = request_end_time_ns - request_start_time_ns;
+		const int64_t sleep_time_ms =
+			(int64_t)(tf->update_timer_ms) - (int64_t)(request_time_ns / 1000000);
+		if (sleep_time_ms > 0) {
+			std::unique_lock<std::mutex> lock(tf->tesseract_mutex);
+			// Sleep for n ns as per the update timer for the remaining time
+			tf->tesseract_thread_cv.wait_for(lock,
+							 std::chrono::milliseconds(sleep_time_ms));
+		}
+	}
+	obs_log(LOG_INFO, "Stopping Tesseract thread");
+
+	{
+		std::lock_guard<std::mutex> lock(tf->tesseract_mutex);
+		tf->tesseract_thread_run = false;
+	}
 }
