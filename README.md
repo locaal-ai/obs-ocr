@@ -48,6 +48,7 @@ Available now:
  - Output OCR result to an OBS Text Source
  - Choose the segmentation mode: Word, Line, Page, etc.
  - "Semantic Smoothing": getting more consistent outputs with higher accuracy and confidence by "averaging" several text outputs
+ - Timing/Running modes: per X-milliseconds
 
 Coming soon:
  - More languages built-in (pretrained Tesseract models)
@@ -55,7 +56,7 @@ Coming soon:
  - More output capabilities: Parsing, formatting
  - Output to more built-in OBS sources (Image, etc.)
  - Extracting text from complex image layouts
- - Different timing modes: per X-frames, per X-milliseconds, etc.
+ - Different timing/run modes: per X-frames, source change, etc.
 
 Check out our other plugins:
 - [Background Removal](https://github.com/occ-ai/obs-backgroundremoval) removes background from webcam without a green screen.
