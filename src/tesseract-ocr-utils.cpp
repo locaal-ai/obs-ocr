@@ -9,7 +9,6 @@
 #include <tesseract/baseapi.h>
 
 #include <inja/inja.hpp>
-#include <nlohmann/json.hpp>
 
 #include <string>
 #include <fstream>
