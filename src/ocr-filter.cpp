@@ -127,6 +127,10 @@ obs_properties_t *ocr_filter_properties(void *data)
 
 	obs_property_set_modified_callback(enable_smoothing_property, enable_smoothing_modified);
 
+	// Output formatting
+	obs_properties_add_text(props, "output_formatting", obs_module_text("OutputFormatting"),
+				OBS_TEXT_MULTILINE);
+
 	// Add a property for the output text source
 	obs_property_t *sources =
 		obs_properties_add_list(props, "text_sources", obs_module_text("OutputTextSource"),
@@ -162,6 +166,7 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_bool(settings, "enable_smoothing", false);
 	obs_data_set_default_int(settings, "word_length", 5);
 	obs_data_set_default_int(settings, "window_size", 10);
+	obs_data_set_default_string(settings, "output_formatting", "{{output}}");
 }
 
 void ocr_filter_update(void *data, obs_data_t *settings)
@@ -180,6 +185,7 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->word_length = obs_data_get_int(settings, "word_length");
 	tf->window_size = obs_data_get_int(settings, "window_size");
 	tf->update_timer_ms = (uint32_t)obs_data_get_int(settings, "update_timer");
+	tf->output_format_template = obs_data_get_string(settings, "output_formatting");
 
 	// Initialize the Tesseract OCR model
 	initialize_tesseract_ocr(tf);
