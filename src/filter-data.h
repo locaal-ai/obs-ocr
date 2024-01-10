@@ -38,6 +38,7 @@ struct filter_data {
 	size_t word_length;
 	size_t window_size;
 	uint32_t update_timer_ms;
+	std::string output_format_template;
 
 	bool isDisabled;
 

@@ -8,6 +8,9 @@
 
 #include <tesseract/baseapi.h>
 
+#include <inja/inja.hpp>
+#include <nlohmann/json.hpp>
+
 #include <string>
 #include <fstream>
 #include <deque>
@@ -181,6 +184,15 @@ std::string CharacterBasedSmoothingFilter::add_reading(const std::string &inWord
 	return smoothed_word;
 }
 
+std::string format_text_with_template(inja::Environment &env, const std::string &text,
+				      struct filter_data *tf)
+{
+	// Replace the {{output}} placeholder with the source text using inja
+	nlohmann::json data;
+	data["output"] = text;
+	return env.render(tf->output_format_template, data);
+}
+
 void stop_and_join_tesseract_thread(struct filter_data *tf)
 {
 	{
@@ -208,6 +220,8 @@ void tesseract_thread(void *data)
 	}
 
 	obs_log(LOG_INFO, "Starting Tesseract thread, update timer: %d", tf->update_timer_ms);
+
+	inja::Environment env;
 
 	while (true) {
 		{
@@ -238,6 +252,7 @@ void tesseract_thread(void *data)
 				if (!ocr_result.empty() &&
 				    is_valid_output_source_name(tf->output_source_name)) {
 					// If an output source is selected - send the results there
+					ocr_result = format_text_with_template(env, ocr_result, tf);
 					setTextCallback(ocr_result, tf);
 				}
 			} catch (const std::exception &e) {

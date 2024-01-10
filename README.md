@@ -49,14 +49,16 @@ Available now:
  - Choose the segmentation mode: Word, Line, Page, etc.
  - "Semantic Smoothing": getting more consistent outputs with higher accuracy and confidence by "averaging" several text outputs
  - Timing/Running modes: per X-milliseconds
+ - Output formatting (with inja): e.g. "Score: {{score}}"
 
 Coming soon:
  - More languages built-in (pretrained Tesseract models)
  - Allowing external model files
- - More output capabilities: Parsing, formatting
+ - More output capabilities e.g. Parsing
  - Output to more built-in OBS sources (Image, etc.)
  - Extracting text from complex image layouts
- - Different timing/run modes: per X-frames, source change, etc.
+ - Different timing/run modes: per X-frames, image change, etc.
+ - Image stabilization
 
 Check out our other plugins:
 - [Background Removal](https://github.com/occ-ai/obs-backgroundremoval) removes background from webcam without a green screen.
@@ -65,7 +67,7 @@ Check out our other plugins:
 - [Polyglot](https://github.com/occ-ai/obs-polyglot) translation AI plugin for real-time, local translation to hunderds of languages
 - [URL/API Source](https://github.com/occ-ai/obs-urlsource) will connect to any URL/API HTTP and get the data/image/audio to your scene.
 
-If you like this work, which is given to you completely free of charge, please consider supporting it on GitHub: https://github.com/sponsors/royshil
+If you like this work, which is given to you completely free of charge, please consider supporting it https://github.com/sponsors/royshil or https://www.patreon.com/RoyShilkrot
 
 ## Download
 Check out the [latest releases](https://github.com/occ-ai/obs-ocr/releases) for downloads and install instructions.

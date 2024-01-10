@@ -1,0 +1,3 @@
+[submodule "vendor/inja"]
+	path = vendor/inja
+	url = git@github.com:pantor/inja.git
