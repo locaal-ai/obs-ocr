@@ -4,7 +4,8 @@
 
 #include <obs-module.h>
 
-#include <opencv2/core/mat.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <tesseract/baseapi.h>
 
@@ -24,17 +25,34 @@ inline uint64_t get_time_ns(void)
 		.count();
 }
 
-void initialize_tesseract_ocr(filter_data *tf)
+void cleanup_config_files(const std::string &unique_id)
+{
+	check_plugin_config_folder_exists();
+
+	// delete the user patterns file
+	std::string filename = "user-patterns-" + unique_id + ".txt";
+	std::string user_patterns_filepath = obs_module_config_path(filename.c_str());
+	std::remove(user_patterns_filepath.c_str());
+
+	// delete the user patterns config file
+	filename = "user-patterns" + unique_id + ".config";
+	std::string patterns_config_filepath = obs_module_config_path(filename.c_str());
+	std::remove(patterns_config_filepath.c_str());
+}
+
+void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required)
 {
 	// Load model
 	obs_log(LOG_INFO, "Loading tesseract model from: %s", tf->tesseractTraineddataFilepath);
 	try {
 		stop_and_join_tesseract_thread(tf);
 
-		if (tf->tesseract_model != nullptr) {
-			tf->tesseract_model->End();
-			delete tf->tesseract_model;
-			tf->tesseract_model = nullptr;
+		if (hard_tesseract_init_required) {
+			if (tf->tesseract_model != nullptr) {
+				tf->tesseract_model->End();
+				delete tf->tesseract_model;
+				tf->tesseract_model = nullptr;
+			}
 		}
 
 		char **configs = nullptr;
@@ -71,16 +89,20 @@ void initialize_tesseract_ocr(filter_data *tf)
 			strcpy(configs[0], patterns_config_filepath.c_str());
 		}
 
-		tf->tesseract_model = new tesseract::TessBaseAPI();
+		if (hard_tesseract_init_required) {
+			tf->tesseract_model = new tesseract::TessBaseAPI();
 
-		// set tesseract page segmentation mode to single word
-		int retval = tf->tesseract_model->Init(tf->tesseractTraineddataFilepath,
-						       tf->language.c_str(),
-						       tesseract::OEM_LSTM_ONLY, configs,
-						       configs_size, nullptr, nullptr, false);
-		if (retval != 0) {
-			throw std::runtime_error("Failed to initialize tesseract model");
+			int retval = tf->tesseract_model->Init(tf->tesseractTraineddataFilepath,
+							       tf->language.c_str(),
+							       tesseract::OEM_LSTM_ONLY, configs,
+							       configs_size, nullptr, nullptr,
+							       false);
+			if (retval != 0) {
+				throw std::runtime_error("Failed to initialize tesseract model");
+			}
 		}
+
+		// set tesseract page segmentation mode
 		tf->tesseract_model->SetPageSegMode(
 			static_cast<tesseract::PageSegMode>(tf->pageSegmentationMode));
 
@@ -245,6 +267,26 @@ void tesseract_thread(void *data)
 
 		if (!imageBGRA.empty()) {
 			try {
+				// if update on change is true check if the image has changed
+				if (tf->update_on_change &&
+				    imageBGRA.size() == tf->lastInputBGRA.size()) {
+					const int change_threshold_from_image_area =
+						(int)((float)tf->update_on_change_threshold /
+						      100.0f *
+						      (float)(imageBGRA.cols * imageBGRA.rows));
+					// if the image has not changed, skip the processing
+					// take the absolute difference between the images, convert to gray and count the non-zero pixels
+					cv::Mat diff;
+					cv::absdiff(imageBGRA, tf->lastInputBGRA, diff);
+					cv::cvtColor(diff, diff, cv::COLOR_BGRA2GRAY);
+					if (cv::countNonZero(diff) <
+					    change_threshold_from_image_area) {
+						// skip the processing
+						continue;
+					}
+				}
+				tf->lastInputBGRA = imageBGRA.clone();
+
 				// Process the image
 				std::string ocr_result = run_tesseract_ocr(tf, imageBGRA);
 

@@ -76,6 +76,7 @@ if(MSVC)
   target_include_directories(OpenCV SYSTEM INTERFACE ${opencv_SOURCE_DIR}/include)
 else()
   target_link_libraries(OpenCV INTERFACE ${opencv_SOURCE_DIR}/lib/libopencv_imgproc.a
-                                         ${opencv_SOURCE_DIR}/lib/libopencv_core.a)
+                                         ${opencv_SOURCE_DIR}/lib/libopencv_core.a
+                                         ${opencv_SOURCE_DIR}/lib/opencv4/3rdparty/libzlib.a)
   target_include_directories(OpenCV SYSTEM INTERFACE ${opencv_SOURCE_DIR}/include/opencv4)
 endif()

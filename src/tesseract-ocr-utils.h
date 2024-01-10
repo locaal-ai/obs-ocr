@@ -6,7 +6,8 @@
 #include <deque>
 #include <string>
 
-void initialize_tesseract_ocr(filter_data *tf);
+void cleanup_config_files(const std::string &unique_id);
+void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required = false);
 std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA);
 std::string strip(const std::string &str);
 void stop_and_join_tesseract_thread(struct filter_data *tf);
