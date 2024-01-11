@@ -257,9 +257,7 @@ void tesseract_thread(void *data)
 		cv::Mat imageBGRA;
 		{
 			std::unique_lock<std::mutex> lock(tf->inputBGRALock, std::try_to_lock);
-			if (!lock.owns_lock()) {
-				obs_log(LOG_INFO, "Can't lock inputBGRALock");
-			} else {
+			if (lock.owns_lock()) {
 				imageBGRA = tf->inputBGRA.clone();
 			}
 		}
@@ -299,9 +297,6 @@ void tesseract_thread(void *data)
 			} catch (const std::exception &e) {
 				obs_log(LOG_ERROR, "%s", e.what());
 			}
-		}
-		else {
-			obs_log(LOG_INFO, "No image to process");
 		}
 
 		// time the request, calculate the remaining time and sleep
