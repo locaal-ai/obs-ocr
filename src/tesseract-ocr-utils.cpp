@@ -161,8 +161,6 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
 		recognitionResult = tf->smoothing_filter->add_reading(recognitionResult);
 	}
 
-	obs_log(LOG_DEBUG, "OCR result: %s", recognitionResult.c_str());
-
 	return recognitionResult;
 }
 
@@ -260,9 +258,10 @@ void tesseract_thread(void *data)
 		{
 			std::unique_lock<std::mutex> lock(tf->inputBGRALock, std::try_to_lock);
 			if (!lock.owns_lock()) {
-				return;
+				obs_log(LOG_INFO, "Can't lock inputBGRALock");
+			} else {
+				imageBGRA = tf->inputBGRA.clone();
 			}
-			imageBGRA = tf->inputBGRA.clone();
 		}
 
 		if (!imageBGRA.empty()) {
@@ -281,6 +280,7 @@ void tesseract_thread(void *data)
 					cv::cvtColor(diff, diff, cv::COLOR_BGRA2GRAY);
 					if (cv::countNonZero(diff) <
 					    change_threshold_from_image_area) {
+						// obs_log(LOG_INFO, "Image has not changed, skipping processing");
 						// skip the processing
 						continue;
 					}
@@ -299,6 +299,9 @@ void tesseract_thread(void *data)
 			} catch (const std::exception &e) {
 				obs_log(LOG_ERROR, "%s", e.what());
 			}
+		}
+		else {
+			obs_log(LOG_INFO, "No image to process");
 		}
 
 		// time the request, calculate the remaining time and sleep
