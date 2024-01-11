@@ -27,6 +27,7 @@ struct filter_data {
 	gs_stagesurf_t *stagesurface;
 
 	cv::Mat inputBGRA;
+	cv::Mat lastInputBGRA;
 	tesseract::TessBaseAPI *tesseract_model;
 	std::string language;
 	int pageSegmentationMode;
@@ -39,6 +40,8 @@ struct filter_data {
 	size_t window_size;
 	uint32_t update_timer_ms;
 	std::string output_format_template;
+	bool update_on_change;
+	int update_on_change_threshold;
 
 	bool isDisabled;
 

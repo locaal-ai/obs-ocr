@@ -28,6 +28,16 @@ const char *ocr_filter_getname(void *unused)
 
 /**                   PROPERTIES                     */
 
+bool update_on_change_modified(obs_properties_t *props, obs_property_t *property,
+			       obs_data_t *settings)
+{
+	bool update_on_change = obs_data_get_bool(settings, "update_on_change");
+	obs_property_set_visible(obs_properties_get(props, "update_on_change_threshold"),
+				 update_on_change);
+	UNUSED_PARAMETER(property);
+	return true;
+}
+
 // Change the type of enable_smoothing_modified to obs_property_modified_t
 bool enable_smoothing_modified(obs_properties_t *props, obs_property_t *property,
 			       obs_data_t *settings)
@@ -67,6 +77,15 @@ obs_properties_t *ocr_filter_properties(void *data)
 	// add advanced settings checkbox
 	obs_properties_add_bool(props, "advanced_settings", obs_module_text("AdvancedSettings"));
 
+	// Add property for "update on change" checkbox
+	obs_properties_add_bool(props, "update_on_change", obs_module_text("UpdateOnChange"));
+	// Add update threshold property
+	obs_properties_add_int_slider(props, "update_on_change_threshold",
+				      obs_module_text("UpdateOnChangeThreshold"), 1, 100, 1);
+	// Add a callback to enable or disable the update threshold property
+	obs_property_set_modified_callback(obs_properties_get(props, "update_on_change"),
+					   update_on_change_modified);
+
 	obs_property_set_modified_callback(
 		obs_properties_get(props, "advanced_settings"),
 		[](obs_properties_t *props_modified, obs_property_t *property,
@@ -74,12 +93,14 @@ obs_properties_t *ocr_filter_properties(void *data)
 			bool advanced_settings = obs_data_get_bool(settings, "advanced_settings");
 			for (const char *prop :
 			     {"page_segmentation_mode", "char_whitelist", "conf_threshold",
-			      "user_patterns", "enable_smoothing", "word_length", "window_size"}) {
+			      "user_patterns", "enable_smoothing", "word_length", "window_size",
+			      "update_on_change_threshold", "update_on_change"}) {
 				obs_property_set_visible(obs_properties_get(props_modified, prop),
 							 advanced_settings);
 			}
 			if (advanced_settings) {
 				enable_smoothing_modified(props_modified, nullptr, settings);
+				update_on_change_modified(props_modified, nullptr, settings);
 			}
 			UNUSED_PARAMETER(property);
 			return true;
@@ -154,6 +175,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 void ocr_filter_defaults(obs_data_t *settings)
 {
 	obs_data_set_default_int(settings, "update_timer", 100);
+	obs_data_set_default_bool(settings, "update_on_change", true);
+	obs_data_set_default_int(settings, "update_on_change_threshold", 15);
 	obs_data_set_default_string(settings, "language", "eng");
 	obs_data_set_default_bool(settings, "advanced_settings", false);
 	obs_data_set_default_int(settings, "page_segmentation_mode", tesseract::PSM_SINGLE_WORD);
@@ -176,8 +199,16 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	// Update the output text source
 	update_text_source_on_settings(tf, settings);
 
+	bool hard_tesseract_init_required = false;
+
+	std::string new_language = obs_data_get_string(settings, "language");
+	if (new_language != tf->language) {
+		// if the language changed, we need to reinitialize the tesseract model
+		hard_tesseract_init_required = true;
+	}
+	tf->language = new_language;
+
 	tf->pageSegmentationMode = (int)obs_data_get_int(settings, "page_segmentation_mode");
-	tf->language = obs_data_get_string(settings, "language");
 	tf->char_whitelist = obs_data_get_string(settings, "char_whitelist");
 	tf->user_patterns = obs_data_get_string(settings, "user_patterns");
 	tf->conf_threshold = (int)obs_data_get_int(settings, "conf_threshold");
@@ -186,9 +217,12 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->window_size = obs_data_get_int(settings, "window_size");
 	tf->update_timer_ms = (uint32_t)obs_data_get_int(settings, "update_timer");
 	tf->output_format_template = obs_data_get_string(settings, "output_formatting");
+	tf->update_on_change = obs_data_get_bool(settings, "update_on_change");
+	tf->update_on_change_threshold =
+		(int)obs_data_get_int(settings, "update_on_change_threshold");
 
 	// Initialize the Tesseract OCR model
-	initialize_tesseract_ocr(tf);
+	initialize_tesseract_ocr(tf, hard_tesseract_init_required);
 }
 
 void ocr_filter_activate(void *data)
@@ -241,6 +275,8 @@ void ocr_filter_destroy(void *data)
 		obs_leave_graphics();
 
 		stop_and_join_tesseract_thread(tf);
+
+		cleanup_config_files(tf->unique_id);
 
 		if (tf->tesseractTraineddataFilepath != nullptr) {
 			bfree(tf->tesseractTraineddataFilepath);
