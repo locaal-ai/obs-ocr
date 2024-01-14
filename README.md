@@ -54,7 +54,7 @@ Available now:
 Coming soon:
  - More languages built-in (pretrained Tesseract models)
  - Allowing external model files
- - More output capabilities e.g. Parsing
+ - More output capabilities e.g. Parsing, saving a file, websocket event, etc.
  - Output to more built-in OBS sources (Image, etc.)
  - Extracting text from complex image layouts
  - Different timing/run modes: per X-frames, image change, etc.
