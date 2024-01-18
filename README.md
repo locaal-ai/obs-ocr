@@ -23,7 +23,7 @@ If this free plugin has been valuable to you consider adding a ⭐ to this GH re
 ### Usage Tutorials
 <div align="center">
   <a href="https://youtu.be/Lnty2vuVr4I" target="_blank">
-    <img width="27%" src="https://github-production-user-asset-6210df.s3.amazonaws.com/441170/297753085-277bc972-a878-47a6-957f-da99d7a8d6d4.jpeg" />
+    <img width="45%" src="https://github-production-user-asset-6210df.s3.amazonaws.com/441170/297753085-277bc972-a878-47a6-957f-da99d7a8d6d4.jpeg" />
   </a>
   <br/>
   4 Minutes
@@ -66,6 +66,7 @@ Coming soon:
  - Different timing/run modes: per X-frames, image change, etc.
  - Image stabilization
  - Image processing: Perspective warping, auto-cropping, binarization, etc.
+ - Text detection mask output: Use for blurring / hiding text on scene
 
 Check out our other plugins:
 - [Background Removal](https://github.com/occ-ai/obs-backgroundremoval) removes background from webcam without a green screen.
