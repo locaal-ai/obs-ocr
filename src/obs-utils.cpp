@@ -9,6 +9,10 @@
 #include <filesystem>
 #include <mutex>
 
+#include <iostream>
+#include <fstream>
+using namespace std; // needed for ofstream.
+
 /**
   * @brief Get RGBA from the stage surface
   *
@@ -115,6 +119,13 @@ void setTextCallback(const std::string &str, struct filter_data *usd)
 	if (!usd->output_source) {
 		// attempt to acquire a weak ref to the text source if it's yet available
 		acquire_weak_output_source_ref(usd);
+	}
+
+	if (usd->enable_log_to_file) {
+		// Create and open a text file
+		ofstream ocr_output_file(usd->log_to_file_file_name);
+		ocr_output_file << str.c_str();
+		ocr_output_file.close();
 	}
 
 	std::lock_guard<std::mutex> lock(*usd->output_source_mutex);

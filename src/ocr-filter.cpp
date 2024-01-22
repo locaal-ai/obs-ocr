@@ -162,6 +162,10 @@ obs_properties_t *ocr_filter_properties(void *data)
 	// Add the sources
 	obs_enum_sources(add_sources_to_list, sources);
 
+	// Add Log Output To File Option
+	obs_properties_add_bool(props, "enable_log_to_file", obs_module_text("EnableLogToFile"));
+	obs_properties_add_text(props, "log_to_file_file_name", obs_module_text("LogFileName"), OBS_TEXT_DEFAULT);
+
 	// Add a informative text about the plugin
 	obs_properties_add_text(
 		props, "info",
@@ -190,6 +194,8 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "word_length", 5);
 	obs_data_set_default_int(settings, "window_size", 10);
 	obs_data_set_default_string(settings, "output_formatting", "{{output}}");
+	obs_data_set_default_bool(settings, "enable_log_to_file", false);
+	obs_data_set_default_string(settings, "log_to_file_file_name", "File Path Here");
 }
 
 void ocr_filter_update(void *data, obs_data_t *settings)
@@ -220,6 +226,8 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->update_on_change = obs_data_get_bool(settings, "update_on_change");
 	tf->update_on_change_threshold =
 		(int)obs_data_get_int(settings, "update_on_change_threshold");
+	tf->enable_log_to_file = obs_data_get_bool(settings, "enable_log_to_file");
+	tf->log_to_file_file_name = obs_data_get_string(settings, "log_to_file_file_name");
 
 	// Initialize the Tesseract OCR model
 	initialize_tesseract_ocr(tf, hard_tesseract_init_required);

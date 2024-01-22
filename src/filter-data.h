@@ -42,6 +42,8 @@ struct filter_data {
 	std::string output_format_template;
 	bool update_on_change;
 	int update_on_change_threshold;
+	bool enable_log_to_file;
+	std::string log_to_file_file_name;
 
 	bool isDisabled;
 
