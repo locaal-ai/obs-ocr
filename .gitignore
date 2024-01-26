@@ -17,6 +17,7 @@
 !README.md
 !/vendor
 !/vendor/inja
+!/docs
 
 # Exclude lock files
 *.lock.json
