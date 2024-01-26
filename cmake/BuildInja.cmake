@@ -9,3 +9,9 @@ set(COVERALLS OFF)
 add_compile_options(-Wno-shadow)
 add_compile_options(-Wno-error=shadow)
 add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/inja ${CMAKE_BINARY_DIR}/inja EXCLUDE_FROM_ALL)
+
+# on linux, disable conversion errors
+if(UNIX AND NOT APPLE)
+  set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
+  add_compile_options(-Wno-error -Wno-conversion -Wno-shadow -Wno-unused-parameter)
+endif()
