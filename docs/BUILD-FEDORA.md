@@ -13,7 +13,7 @@ sudo dnf install cmake gcc-c++ ninja-build obs-studio-devel opencv-devel qt6-qtb
 
 Clone the repository and set up the submodules:
 ```
-git clone https://github.com/obs-ai/obs-ocr.git
+git clone https://github.com/occ-ai/obs-ocr.git
 cd obs-ocr
 git submodule update --init
 ```
