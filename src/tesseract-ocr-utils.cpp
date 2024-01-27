@@ -164,6 +164,51 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
 	return recognitionResult;
 }
 
+std::vector<std::vector<cv::Point>> extract_text_detection_boxes(filter_data *tf,
+								 cv::Size imageSize)
+{
+	// extract the text detection boxes
+	tesseract::ResultIterator *ri = tf->tesseract_model->GetIterator();
+	if (ri == nullptr) {
+		return std::vector<std::vector<cv::Point>>();
+	}
+	tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
+	if (tf->pageSegmentationMode == tesseract::PSM_SINGLE_CHAR) {
+		level = tesseract::RIL_SYMBOL;
+	}
+	std::vector<std::vector<cv::Point>> boxes;
+	do {
+		if (ri->Empty(level)) {
+			continue;
+		}
+		// is this a word box?
+		if (level == tesseract::RIL_WORD) {
+			// get the confidence of the word
+			int conf = ri->Confidence(level);
+			if (conf < tf->conf_threshold) {
+				continue;
+			}
+		}
+		std::vector<cv::Point> box(4);
+		int left, top, right, bottom;
+		ri->BoundingBox(level, &left, &top, &right, &bottom);
+		box[0] = cv::Point(left, top);
+		box[1] = cv::Point(right, top);
+		box[2] = cv::Point(right, bottom);
+		box[3] = cv::Point(left, bottom);
+		// get area of box
+		const int area = (right - left) * (bottom - top);
+		// if the area is too small or too big, relative to the image size - skip the box
+		if (area < 100 || area > (imageSize.width * imageSize.height) / 2) {
+			continue;
+		}
+		boxes.push_back(box);
+	} while (ri->Next(level));
+	delete ri;
+
+	return boxes;
+}
+
 CharacterBasedSmoothingFilter::CharacterBasedSmoothingFilter(size_t word_length_,
 							     size_t window_size_)
 	: word_length(word_length_),
@@ -287,6 +332,22 @@ void tesseract_thread(void *data)
 
 				// Process the image
 				std::string ocr_result = run_tesseract_ocr(tf, imageBGRA);
+
+				if (is_valid_output_source_name(tf->output_image_source_name)) {
+					// Extract the text detection boxes
+					std::vector<std::vector<cv::Point>> boxes =
+						extract_text_detection_boxes(tf, imageBGRA.size());
+
+					// Create a text detection binary mask
+					cv::Mat text_detection_mask(imageBGRA.rows, imageBGRA.cols,
+								    CV_8UC1, cv::Scalar(0));
+					for (const std::vector<cv::Point> &box : boxes) {
+						cv::fillConvexPoly(text_detection_mask, box,
+								   cv::Scalar(255));
+					}
+
+					setTextDetectionMaskCallback(text_detection_mask, tf);
+				}
 
 				if (!ocr_result.empty() &&
 				    is_valid_output_source_name(tf->output_source_name)) {
