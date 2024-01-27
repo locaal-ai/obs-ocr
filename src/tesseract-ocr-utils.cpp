@@ -184,8 +184,8 @@ std::vector<std::vector<cv::Point>> extract_text_detection_boxes(filter_data *tf
 		// is this a word box?
 		if (level == tesseract::RIL_WORD) {
 			// get the confidence of the word
-			int conf = ri->Confidence(level);
-			if (conf < tf->conf_threshold) {
+			float conf = ri->Confidence(level);
+			if ((int)conf < tf->conf_threshold) {
 				continue;
 			}
 		}
