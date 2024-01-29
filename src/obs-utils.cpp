@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <mutex>
 #include <opencv2/imgproc.hpp>
+#include <fstream>
 
 /**
   * @brief Get RGBA from the stage surface
@@ -114,6 +115,23 @@ void setTextCallback(const std::string &str, struct filter_data *usd)
 {
 	if (!usd->output_source_mutex) {
 		obs_log(LOG_ERROR, "output_source_mutex is null");
+		return;
+	}
+
+	// check if save_to_file is selected
+	if (strcmp(usd->output_source_name, "!!save_to_file!!") == 0) {
+		// save_to_file is selected, write the text to a file
+		if (usd->output_file_path.empty()) {
+			obs_log(LOG_ERROR, "output_file_path is empty");
+			return;
+		}
+		std::ofstream file(usd->output_file_path);
+		if (!file.is_open()) {
+			obs_log(LOG_ERROR, "failed to open file %s", usd->output_file_path.c_str());
+			return;
+		}
+		file << str;
+		file.close();
 		return;
 	}
 
@@ -249,8 +267,23 @@ void update_output_source_on_settings(struct filter_data *usd, obs_data_t *setti
 
 void update_text_source_on_settings(struct filter_data *usd, obs_data_t *settings)
 {
-	update_output_source_on_settings(usd, settings, "text_sources", &usd->output_source,
-					 &usd->output_source_name);
+	// check if text_sources is pointing to !!save_to_file!!
+	const char *text_sources = obs_data_get_string(settings, "text_sources");
+	if (strcmp(text_sources, "!!save_to_file!!") != 0) {
+		// text_sources is not pointing to !!save_to_file!!, update the selected text source
+		update_output_source_on_settings(usd, settings, "text_sources", &usd->output_source,
+						&usd->output_source_name);
+		usd->output_file_path = "";
+	} else {
+		// text_sources is pointing to !!save_to_file!!, release the selected text source
+		if (usd->output_source) {
+			std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
+			obs_weak_source_release(usd->output_source);
+			usd->output_source = nullptr;
+		}
+		usd->output_source_name = bstrdup(text_sources);
+		usd->output_file_path = obs_data_get_string(settings, "output_file_path");
+	}
 }
 
 void update_image_source_on_settings(struct filter_data *usd, obs_data_t *settings)
