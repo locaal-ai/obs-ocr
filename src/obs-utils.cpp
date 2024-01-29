@@ -3,11 +3,16 @@
 
 #include <obs-module.h>
 
+#include <QImage>
+#include <QString>
+
 #include <opencv2/core.hpp>
 
 #include <string>
 #include <filesystem>
 #include <mutex>
+#include <opencv2/imgproc.hpp>
+#include <fstream>
 
 /**
   * @brief Get RGBA from the stage surface
@@ -76,9 +81,10 @@ bool getRGBAFromStageSurface(filter_data *tf, uint32_t &width, uint32_t &height)
 
 /*            OUTPUT TEXT SOURCE UTIL             */
 
-void acquire_weak_output_source_ref(struct filter_data *usd)
+void acquire_weak_output_source_ref(struct filter_data *usd, char *output_source_name_for_ref,
+				    obs_weak_source_t **output_source)
 {
-	if (!is_valid_output_source_name(usd->output_source_name)) {
+	if (!is_valid_output_source_name(output_source_name_for_ref)) {
 		obs_log(LOG_ERROR, "output_source_name is invalid");
 		// text source is not selected
 		return;
@@ -92,16 +98,16 @@ void acquire_weak_output_source_ref(struct filter_data *usd)
 	std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
 
 	// acquire a weak ref to the new text source
-	obs_source_t *source = obs_get_source_by_name(usd->output_source_name);
+	obs_source_t *source = obs_get_source_by_name(output_source_name_for_ref);
 	if (source) {
-		usd->output_source = obs_source_get_weak_source(source);
+		*output_source = obs_source_get_weak_source(source);
 		obs_source_release(source);
-		if (!usd->output_source) {
-			obs_log(LOG_ERROR, "failed to get weak source for text source %s",
-				usd->output_source_name);
+		if (!*output_source) {
+			obs_log(LOG_ERROR, "failed to get weak source for source %s",
+				output_source_name_for_ref);
 		}
 	} else {
-		obs_log(LOG_ERROR, "text source '%s' not found", usd->output_source_name);
+		obs_log(LOG_ERROR, "source '%s' not found", output_source_name_for_ref);
 	}
 }
 
@@ -112,9 +118,26 @@ void setTextCallback(const std::string &str, struct filter_data *usd)
 		return;
 	}
 
+	// check if save_to_file is selected
+	if (strcmp(usd->output_source_name, "!!save_to_file!!") == 0) {
+		// save_to_file is selected, write the text to a file
+		if (usd->output_file_path.empty()) {
+			obs_log(LOG_ERROR, "output_file_path is empty");
+			return;
+		}
+		std::ofstream file(usd->output_file_path);
+		if (!file.is_open()) {
+			obs_log(LOG_ERROR, "failed to open file %s", usd->output_file_path.c_str());
+			return;
+		}
+		file << str;
+		file.close();
+		return;
+	}
+
 	if (!usd->output_source) {
 		// attempt to acquire a weak ref to the text source if it's yet available
-		acquire_weak_output_source_ref(usd);
+		acquire_weak_output_source_ref(usd, usd->output_source_name, &(usd->output_source));
 	}
 
 	std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
@@ -136,56 +159,137 @@ void setTextCallback(const std::string &str, struct filter_data *usd)
 	obs_source_release(target);
 };
 
-bool add_sources_to_list(void *list_property, obs_source_t *source)
+void setTextDetectionMaskCallback(const cv::Mat &mask, struct filter_data *usd)
+{
+	UNUSED_PARAMETER(mask);
+	if (!usd->output_source_mutex) {
+		obs_log(LOG_ERROR, "output_source_mutex is null");
+		return;
+	}
+
+	if (!usd->output_image_source) {
+		// attempt to acquire a weak ref to the image source if it's yet available
+		acquire_weak_output_source_ref(usd, usd->output_image_source_name,
+					       &(usd->output_image_source));
+	}
+
+	std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
+
+	obs_weak_source_t *image_source = usd->output_image_source;
+	if (!image_source) {
+		obs_log(LOG_ERROR, "image_source is null");
+		return;
+	}
+	auto target = obs_weak_source_get_source(image_source);
+	if (!target) {
+		obs_log(LOG_ERROR, "image_source target is null");
+		return;
+	}
+
+	// write the mask to a png file
+	// get file path in the config folder
+	std::string config_folder = obs_module_config_path("");
+	std::string filename = config_folder + "/" + usd->unique_id + ".png";
+	// write the file
+	write_png_file(filename.c_str(), mask.data, mask.cols, mask.rows);
+
+	// set the image source settings
+	auto image_settings = obs_source_get_settings(target);
+	obs_data_set_string(image_settings, "file", filename.c_str());
+	obs_source_update(target, image_settings);
+	obs_data_release(image_settings);
+	obs_source_release(target);
+}
+
+bool add_sources_to_list(void *list_property, obs_source_t *source,
+			 const std::vector<std::string> &source_ids)
 {
 	// add all text and media sources to the list
 	auto source_id = obs_source_get_id(source);
-	if (strcmp(source_id, "text_ft2_source_v2") != 0 &&
-	    strcmp(source_id, "text_gdiplus_v2") != 0) {
+	if (std::find(source_ids.begin(), source_ids.end(), source_id) == source_ids.end()) {
 		return true;
 	}
 
 	obs_property_t *sources = (obs_property_t *)list_property;
 	const char *name = obs_source_get_name(source);
-	std::string name_with_prefix = std::string("(Text) ").append(name);
-	obs_property_list_add_string(sources, name_with_prefix.c_str(), name);
+	obs_property_list_add_string(sources, name, name);
 	return true;
+}
+
+bool add_text_sources_to_list(void *list_property, obs_source_t *source)
+{
+	return add_sources_to_list(list_property, source,
+				   {"text_ft2_source_v2", "text_gdiplus_v2"});
+}
+
+bool add_image_sources_to_list(void *list_property, obs_source_t *source)
+{
+	return add_sources_to_list(list_property, source, {"image_source"});
+}
+
+void update_output_source_on_settings(struct filter_data *usd, obs_data_t *settings,
+				      const char *setting_prop_name,
+				      obs_weak_source_t **output_source, char **output_source_name)
+{
+	// update the text source
+	const char *new_source_name = obs_data_get_string(settings, setting_prop_name);
+	obs_weak_source_t *old_weak_source = NULL;
+
+	if (!is_valid_output_source_name(new_source_name)) {
+		// new selected text source is not valid, release the old one
+		if (*output_source) {
+			std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
+			old_weak_source = *output_source;
+			*output_source = nullptr;
+		}
+		if (*output_source_name) {
+			bfree(*output_source_name);
+			*output_source_name = nullptr;
+		}
+	} else {
+		// new selected text source is valid, check if it's different from the old one
+		if (*output_source_name == nullptr ||
+		    strcmp(new_source_name, *output_source_name) != 0) {
+			// new text source is different from the old one, release the old one
+			if (*output_source) {
+				std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
+				old_weak_source = *output_source;
+				*output_source = nullptr;
+			}
+			*output_source_name = bstrdup(new_source_name);
+		}
+	}
+
+	if (old_weak_source) {
+		obs_weak_source_release(old_weak_source);
+	}
 }
 
 void update_text_source_on_settings(struct filter_data *usd, obs_data_t *settings)
 {
-	// update the text source
-	const char *new_text_source_name = obs_data_get_string(settings, "text_sources");
-	obs_weak_source_t *old_weak_text_source = NULL;
-
-	if (!is_valid_output_source_name(new_text_source_name)) {
-		// new selected text source is not valid, release the old one
+	// check if text_sources is pointing to !!save_to_file!!
+	const char *text_sources = obs_data_get_string(settings, "text_sources");
+	if (strcmp(text_sources, "!!save_to_file!!") != 0) {
+		// text_sources is not pointing to !!save_to_file!!, update the selected text source
+		update_output_source_on_settings(usd, settings, "text_sources", &usd->output_source,
+						 &usd->output_source_name);
+		usd->output_file_path = "";
+	} else {
+		// text_sources is pointing to !!save_to_file!!, release the selected text source
 		if (usd->output_source) {
 			std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
-			old_weak_text_source = usd->output_source;
+			obs_weak_source_release(usd->output_source);
 			usd->output_source = nullptr;
 		}
-		if (usd->output_source_name) {
-			bfree(usd->output_source_name);
-			usd->output_source_name = nullptr;
-		}
-	} else {
-		// new selected text source is valid, check if it's different from the old one
-		if (usd->output_source_name == nullptr ||
-		    strcmp(new_text_source_name, usd->output_source_name) != 0) {
-			// new text source is different from the old one, release the old one
-			if (usd->output_source) {
-				std::lock_guard<std::mutex> lock(*usd->output_source_mutex);
-				old_weak_text_source = usd->output_source;
-				usd->output_source = nullptr;
-			}
-			usd->output_source_name = bstrdup(new_text_source_name);
-		}
+		usd->output_source_name = bstrdup(text_sources);
+		usd->output_file_path = obs_data_get_string(settings, "output_file_path");
 	}
+}
 
-	if (old_weak_text_source) {
-		obs_weak_source_release(old_weak_text_source);
-	}
+void update_image_source_on_settings(struct filter_data *usd, obs_data_t *settings)
+{
+	update_output_source_on_settings(usd, settings, "text_detection_mask_sources",
+					 &usd->output_image_source, &usd->output_image_source_name);
 }
 
 void check_plugin_config_folder_exists()
@@ -195,4 +299,11 @@ void check_plugin_config_folder_exists()
 		obs_log(LOG_INFO, "Creating plugin config folder: %s", config_folder.c_str());
 		std::filesystem::create_directories(config_folder);
 	}
+}
+
+void write_png_file(const char *filename, const unsigned char *image8uc1, int width, int height)
+{
+	QImage image(image8uc1, width, height, QImage::Format_Grayscale8);
+	QString qfilename(filename);
+	image.save(qfilename);
 }

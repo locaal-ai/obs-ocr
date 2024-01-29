@@ -11,6 +11,7 @@
 #include <string>
 #include <thread>
 #include <condition_variable>
+#include <string>
 
 class CharacterBasedSmoothingFilter;
 
@@ -55,7 +56,11 @@ struct filter_data {
 	// Text source to output the text to
 	obs_weak_source_t *output_source = nullptr;
 	char *output_source_name = nullptr;
+	// Image source to output the detection mask to
+	obs_weak_source_t *output_image_source = nullptr;
+	char *output_image_source_name = nullptr;
 	std::mutex *output_source_mutex = nullptr;
+	std::string output_file_path;
 
 	char *tesseractTraineddataFilepath = nullptr;
 };

@@ -153,14 +153,46 @@ obs_properties_t *ocr_filter_properties(void *data)
 				OBS_TEXT_MULTILINE);
 
 	// Add a property for the output text source
-	obs_property_t *sources =
+	obs_property_t *text_sources =
 		obs_properties_add_list(props, "text_sources", obs_module_text("OutputTextSource"),
 					OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
 
 	// Add a "none" option
-	obs_property_list_add_string(sources, obs_module_text("NoOutput"), "none");
+	obs_property_list_add_string(text_sources, obs_module_text("NoOutput"), "none");
+	// Add a "save to file" option
+	obs_property_list_add_string(text_sources, obs_module_text("SaveToFile"),
+				     "!!save_to_file!!");
 	// Add the sources
-	obs_enum_sources(add_sources_to_list, sources);
+	obs_enum_sources(add_text_sources_to_list, text_sources);
+
+	// Add an option to set the output file path
+	obs_properties_add_path(props, "output_file_path", obs_module_text("OutputFilePath"),
+				OBS_PATH_FILE, nullptr, nullptr);
+
+	// add callback to enable or disable the output file path property
+	obs_property_set_modified_callback(
+		obs_properties_get(props, "text_sources"),
+		[](obs_properties_t *props_modified, obs_property_t *property,
+		   obs_data_t *settings) {
+			bool save_to_file = strcmp(obs_data_get_string(settings, "text_sources"),
+						   "!!save_to_file!!") == 0;
+			obs_property_set_visible(obs_properties_get(props_modified,
+								    "output_file_path"),
+						 save_to_file);
+			UNUSED_PARAMETER(property);
+			return true;
+		});
+
+	// Add a property for the output text detection mask image source
+	obs_property_t *image_sources =
+		obs_properties_add_list(props, "text_detection_mask_sources",
+					obs_module_text("OutputTextDetectionMaskSource"),
+					OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+
+	// Add a "none" option
+	obs_property_list_add_string(image_sources, obs_module_text("NoOutput"), "none");
+	// Add the sources
+	obs_enum_sources(add_image_sources_to_list, image_sources);
 
 	// Add a informative text about the plugin
 	obs_properties_add_text(
@@ -181,9 +213,10 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_bool(settings, "advanced_settings", false);
 	obs_data_set_default_int(settings, "page_segmentation_mode", tesseract::PSM_SINGLE_WORD);
 	obs_data_set_default_string(settings, "text_sources", "none");
+	obs_data_set_default_string(settings, "text_detection_mask_sources", "none");
 	obs_data_set_default_string(
 		settings, "char_whitelist",
-		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:;!?-()[]{}<>|/@#$%&*+=_~");
+		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:;!?-()[]{}<>|/@#$%&*+=_~ ");
 	obs_data_set_default_int(settings, "conf_threshold", 50);
 	obs_data_set_default_string(settings, "user_patterns", "");
 	obs_data_set_default_bool(settings, "enable_smoothing", false);
@@ -198,6 +231,8 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 
 	// Update the output text source
 	update_text_source_on_settings(tf, settings);
+	// Update the output text detection mask image source
+	update_image_source_on_settings(tf, settings);
 
 	bool hard_tesseract_init_required = false;
 

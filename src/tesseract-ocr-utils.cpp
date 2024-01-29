@@ -32,12 +32,17 @@ void cleanup_config_files(const std::string &unique_id)
 	// delete the user patterns file
 	std::string filename = "user-patterns-" + unique_id + ".txt";
 	std::string user_patterns_filepath = obs_module_config_path(filename.c_str());
-	std::remove(user_patterns_filepath.c_str());
+	std::filesystem::remove(user_patterns_filepath.c_str());
 
 	// delete the user patterns config file
 	filename = "user-patterns" + unique_id + ".config";
 	std::string patterns_config_filepath = obs_module_config_path(filename.c_str());
-	std::remove(patterns_config_filepath.c_str());
+	std::filesystem::remove(patterns_config_filepath.c_str());
+
+	// delete the output mask file
+	filename = unique_id + ".png";
+	std::string mask_filepath = obs_module_config_path(filename.c_str());
+	std::filesystem::remove(mask_filepath.c_str());
 }
 
 void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required)
@@ -57,6 +62,11 @@ void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required
 
 		char **configs = nullptr;
 		int configs_size = 0;
+
+		if (is_valid_output_source_name(tf->output_image_source_name)) {
+			// make sure mask folder exists
+			check_plugin_config_folder_exists();
+		}
 
 		// if the user patterns are not empty, apply them
 		if (!tf->user_patterns.empty()) {
@@ -162,6 +172,51 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
 	}
 
 	return recognitionResult;
+}
+
+std::vector<std::vector<cv::Point>> extract_text_detection_boxes(filter_data *tf,
+								 cv::Size imageSize)
+{
+	// extract the text detection boxes
+	tesseract::ResultIterator *ri = tf->tesseract_model->GetIterator();
+	if (ri == nullptr) {
+		return std::vector<std::vector<cv::Point>>();
+	}
+	tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
+	if (tf->pageSegmentationMode == tesseract::PSM_SINGLE_CHAR) {
+		level = tesseract::RIL_SYMBOL;
+	}
+	std::vector<std::vector<cv::Point>> boxes;
+	do {
+		if (ri->Empty(level)) {
+			continue;
+		}
+		// is this a word box?
+		if (level == tesseract::RIL_WORD) {
+			// get the confidence of the word
+			float conf = ri->Confidence(level);
+			if ((int)conf < tf->conf_threshold) {
+				continue;
+			}
+		}
+		std::vector<cv::Point> box(4);
+		int left, top, right, bottom;
+		ri->BoundingBox(level, &left, &top, &right, &bottom);
+		box[0] = cv::Point(left, top);
+		box[1] = cv::Point(right, top);
+		box[2] = cv::Point(right, bottom);
+		box[3] = cv::Point(left, bottom);
+		// get area of box
+		const int area = (right - left) * (bottom - top);
+		// if the area is too small or too big, relative to the image size - skip the box
+		if (area < 100 || area > (imageSize.width * imageSize.height) / 2) {
+			continue;
+		}
+		boxes.push_back(box);
+	} while (ri->Next(level));
+	delete ri;
+
+	return boxes;
 }
 
 CharacterBasedSmoothingFilter::CharacterBasedSmoothingFilter(size_t word_length_,
@@ -287,6 +342,22 @@ void tesseract_thread(void *data)
 
 				// Process the image
 				std::string ocr_result = run_tesseract_ocr(tf, imageBGRA);
+
+				if (is_valid_output_source_name(tf->output_image_source_name)) {
+					// Extract the text detection boxes
+					std::vector<std::vector<cv::Point>> boxes =
+						extract_text_detection_boxes(tf, imageBGRA.size());
+
+					// Create a text detection binary mask
+					cv::Mat text_detection_mask(imageBGRA.rows, imageBGRA.cols,
+								    CV_8UC1, cv::Scalar(0));
+					for (const std::vector<cv::Point> &box : boxes) {
+						cv::fillConvexPoly(text_detection_mask, box,
+								   cv::Scalar(255));
+					}
+
+					setTextDetectionMaskCallback(text_detection_mask, tf);
+				}
 
 				if (!ocr_result.empty() &&
 				    is_valid_output_source_name(tf->output_source_name)) {
