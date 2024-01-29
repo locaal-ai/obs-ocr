@@ -272,7 +272,7 @@ void update_text_source_on_settings(struct filter_data *usd, obs_data_t *setting
 	if (strcmp(text_sources, "!!save_to_file!!") != 0) {
 		// text_sources is not pointing to !!save_to_file!!, update the selected text source
 		update_output_source_on_settings(usd, settings, "text_sources", &usd->output_source,
-						&usd->output_source_name);
+						 &usd->output_source_name);
 		usd->output_file_path = "";
 	} else {
 		// text_sources is pointing to !!save_to_file!!, release the selected text source

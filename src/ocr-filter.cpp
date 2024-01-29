@@ -160,7 +160,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 	// Add a "none" option
 	obs_property_list_add_string(text_sources, obs_module_text("NoOutput"), "none");
 	// Add a "save to file" option
-	obs_property_list_add_string(text_sources, obs_module_text("SaveToFile"), "!!save_to_file!!");
+	obs_property_list_add_string(text_sources, obs_module_text("SaveToFile"),
+				     "!!save_to_file!!");
 	// Add the sources
 	obs_enum_sources(add_text_sources_to_list, text_sources);
 
@@ -173,15 +174,14 @@ obs_properties_t *ocr_filter_properties(void *data)
 		obs_properties_get(props, "text_sources"),
 		[](obs_properties_t *props_modified, obs_property_t *property,
 		   obs_data_t *settings) {
-			bool save_to_file =
-				strcmp(obs_data_get_string(settings, "text_sources"),
-							"!!save_to_file!!") == 0;
-			obs_property_set_visible(obs_properties_get(props_modified, "output_file_path"),
+			bool save_to_file = strcmp(obs_data_get_string(settings, "text_sources"),
+						   "!!save_to_file!!") == 0;
+			obs_property_set_visible(obs_properties_get(props_modified,
+								    "output_file_path"),
 						 save_to_file);
 			UNUSED_PARAMETER(property);
 			return true;
 		});
-
 
 	// Add a property for the output text detection mask image source
 	obs_property_t *image_sources =
