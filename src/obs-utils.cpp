@@ -189,7 +189,7 @@ void setTextDetectionMaskCallback(const cv::Mat &mask, struct filter_data *usd)
 	// write the mask to a png file
 	// get file path in the config folder
 	std::string config_folder = obs_module_config_path("");
-	std::string filename = config_folder + "/mask.png";
+	std::string filename = config_folder + "/" + usd->unique_id + ".png";
 	// write the file
 	write_png_file(filename.c_str(), mask.data, mask.cols, mask.rows);
 

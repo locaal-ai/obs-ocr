@@ -32,12 +32,17 @@ void cleanup_config_files(const std::string &unique_id)
 	// delete the user patterns file
 	std::string filename = "user-patterns-" + unique_id + ".txt";
 	std::string user_patterns_filepath = obs_module_config_path(filename.c_str());
-	std::remove(user_patterns_filepath.c_str());
+	std::filesystem::remove(user_patterns_filepath.c_str());
 
 	// delete the user patterns config file
 	filename = "user-patterns" + unique_id + ".config";
 	std::string patterns_config_filepath = obs_module_config_path(filename.c_str());
-	std::remove(patterns_config_filepath.c_str());
+	std::filesystem::remove(patterns_config_filepath.c_str());
+
+	// delete the output mask file
+	filename = unique_id + ".png";
+	std::string mask_filepath = obs_module_config_path(filename.c_str());
+	std::filesystem::remove(mask_filepath.c_str());
 }
 
 void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required)
@@ -57,6 +62,11 @@ void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required
 
 		char **configs = nullptr;
 		int configs_size = 0;
+
+		if (is_valid_output_source_name(tf->output_image_source_name)) {
+			// make sure mask folder exists
+			check_plugin_config_folder_exists();
+		}
 
 		// if the user patterns are not empty, apply them
 		if (!tf->user_patterns.empty()) {
