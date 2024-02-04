@@ -16,9 +16,10 @@ FetchContent_Populate(opencv_source)
 
 set(BUILD_OPENCV_BASEDIR ${CMAKE_BINARY_DIR}/build-opencv)
 
-set(BUILD_OPENCV_OUTPUTS ${BUILD_OPENCV_BASEDIR}/release/${CMAKE_BUILD_TYPE}/lib/libopencv_imgproc.a
-${BUILD_OPENCV_BASEDIR}/release/${CMAKE_BUILD_TYPE}/lib/libopencv_core.a
-${BUILD_OPENCV_BASEDIR}/release/${CMAKE_BUILD_TYPE}/lib/opencv4/3rdparty/libzlib.a)
+set(BUILD_OPENCV_OUTPUTS
+    ${BUILD_OPENCV_BASEDIR}/release/${CMAKE_BUILD_TYPE}/lib/libopencv_imgproc.a
+    ${BUILD_OPENCV_BASEDIR}/release/${CMAKE_BUILD_TYPE}/lib/libopencv_core.a
+    ${BUILD_OPENCV_BASEDIR}/release/${CMAKE_BUILD_TYPE}/lib/opencv4/3rdparty/libzlib.a)
 
 set(BUILD_OPENCV_INCLUDE_DIR ${BUILD_OPENCV_BASEDIR}/release/${CMAKE_BUILD_TYPE}/include/opencv4)
 
