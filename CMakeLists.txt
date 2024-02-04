@@ -50,7 +50,14 @@ else()
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OpenCV)
 endif()
 
-include(cmake/FetchTesseract.cmake)
+set(BUILD_TESSERACT_FROM_SOURCE
+    OFF
+    CACHE STRING "Build Tessaract from tarball")
+if(BUILD_TESSERACT_FROM_SOURCE)
+  include(cmake/BuildTesseract.cmake)
+else()
+  include(cmake/FetchTesseract.cmake)
+endif()
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Tesseract)
 
 include(cmake/BuildInja.cmake)
