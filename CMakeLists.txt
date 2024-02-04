@@ -54,6 +54,9 @@ set(BUILD_TESSERACT_FROM_SOURCE
     OFF
     CACHE STRING "Build Tessaract from tarball")
 if(BUILD_TESSERACT_FROM_SOURCE)
+  if(NOT OS_LINUX)
+    message(FATAL_ERROR "Building Tesseract from source is only supported on Linux!")
+  endif()
   include(cmake/BuildTesseract.cmake)
 else()
   include(cmake/FetchTesseract.cmake)
