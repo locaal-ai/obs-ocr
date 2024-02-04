@@ -37,14 +37,30 @@ endif()
 set(USE_SYSTEM_OPENCV
     OFF
     CACHE STRING "Use system OpenCV")
-if(USE_SYSTEM_OPENCV)
-  if(OS_LINUX)
-    find_package(OpenCV REQUIRED COMPONENTS core imgproc dnn)
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "${OpenCV_LIBRARIES}")
-    target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PUBLIC "${OpenCV_INCLUDE_DIRS}")
-  else()
-    message(FATAL_ERROR "System OpenCV is only supported on Linux!")
+
+set(BUILD_OPENCV_FROM_SOURCE
+    OFF
+    CACHE STRING "Build OpenCV from tarball")
+
+if(OS_LINUX)
+  if(USE_SYSTEM_OPENCV AND BUILD_OPENCV_FROM_SOURCE)
+    message(FATAL_ERROR "Only one of USE_SYSTEM_OPENCV and BUILD_OPENCV_FROM_SOURCE can be enabled!")
   endif()
+else()
+  if(USE_SYSTEM_OPENCV)
+    message(FATAL_ERROR "System OpenCV is only supported on Linux!")
+  elseif(BUILD_OPENCV_FROM_SOURCE)
+    message(FATAL_ERROR "Building OpenCV from source is only supported on Linux!")
+  endif()
+endif()
+
+if(USE_SYSTEM_OPENCV)
+  find_package(OpenCV REQUIRED COMPONENTS core imgproc dnn)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "${OpenCV_LIBRARIES}")
+  target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PUBLIC "${OpenCV_INCLUDE_DIRS}")
+elseif(BUILD_OPENCV_FROM_SOURCE)
+  include(cmake/BuildOpenCV.cmake)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OpenCV)
 else()
   include(cmake/FetchOpenCV.cmake)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OpenCV)
