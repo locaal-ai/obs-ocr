@@ -3,4 +3,4 @@
 	url = https://github.com/pantor/inja.git
 [submodule "vendor/obs-ocr-deps"]
 	path = vendor/obs-ocr-deps
-	url = https://github.com/umireon/obs-ocr-deps.git
+	url = https://github.com/occ-ai/obs-ocr-deps.git
