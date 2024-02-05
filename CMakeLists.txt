@@ -55,7 +55,7 @@ else()
 endif()
 
 if(USE_SYSTEM_OPENCV)
-  find_package(OpenCV REQUIRED COMPONENTS core imgproc dnn)
+  find_package(OpenCV REQUIRED COMPONENTS core imgproc)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "${OpenCV_LIBRARIES}")
   target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PUBLIC "${OpenCV_INCLUDE_DIRS}")
 elseif(BUILD_OPENCV_FROM_SOURCE)
