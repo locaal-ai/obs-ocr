@@ -1,9 +1,3 @@
 [submodule "vendor/inja"]
 	path = vendor/inja
 	url = https://github.com/pantor/inja.git
-[submodule "vendor/obs-ocr-deps"]
-	path = vendor/obs-ocr-deps
-	url = https://github.com/occ-ai/obs-ocr-deps.git
-[submodule "vendor/obs-backgroundremoval-dep-opencv"]
-	path = vendor/obs-backgroundremoval-dep-opencv
-	url = https://github.com/occ-ai/obs-backgroundremoval-dep-opencv.git
