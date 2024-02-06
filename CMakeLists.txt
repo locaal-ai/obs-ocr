@@ -38,46 +38,42 @@ set(USE_SYSTEM_OPENCV
     OFF
     CACHE STRING "Use system OpenCV")
 
-set(BUILD_OPENCV_FROM_SOURCE
-    OFF
-    CACHE STRING "Build OpenCV from tarball")
-
-if(OS_LINUX)
-  if(USE_SYSTEM_OPENCV AND BUILD_OPENCV_FROM_SOURCE)
-    message(FATAL_ERROR "Only one of USE_SYSTEM_OPENCV and BUILD_OPENCV_FROM_SOURCE can be enabled!")
-  endif()
-else()
-  if(USE_SYSTEM_OPENCV)
-    message(FATAL_ERROR "System OpenCV is only supported on Linux!")
-  elseif(BUILD_OPENCV_FROM_SOURCE)
-    message(FATAL_ERROR "Building OpenCV from source is only supported on Linux!")
-  endif()
+if(NOT OS_LINUX AND USE_SYSTEM_OPENCV)
+  message(FATAL_ERROR "System OpenCV is only supported on Linux!")
 endif()
 
 if(USE_SYSTEM_OPENCV)
   find_package(OpenCV REQUIRED COMPONENTS core imgproc)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "${OpenCV_LIBRARIES}")
   target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PUBLIC "${OpenCV_INCLUDE_DIRS}")
-elseif(BUILD_OPENCV_FROM_SOURCE)
-  include(cmake/BuildOpenCV.cmake)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OpenCV)
 else()
   include(cmake/FetchOpenCV.cmake)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OpenCV)
 endif()
 
-set(BUILD_TESSERACT_FROM_SOURCE
+set(USE_SYSTEM_TESSERACT
     OFF
-    CACHE STRING "Build Tessaract from tarball")
-if(BUILD_TESSERACT_FROM_SOURCE)
-  if(NOT OS_LINUX)
-    message(FATAL_ERROR "Building Tesseract from source is only supported on Linux!")
+    CACHE STRING "Use system Tesseract")
+
+if(NOT OS_LINUX AND USE_SYSTEM_TESSERACT)
+  message(FATAL_ERROR "System Tesseract is only supported on Linux!")
+endif()
+
+if(USE_SYSTEM_TESSERACT)
+  find_package(Tesseract)
+  if(Tesseract_FOUND)
+    target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE "${Tesseract_LIBRARY_DIRS}")
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "${Tesseract_LIBRARIES}")
+    target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PUBLIC "${Tesseract_INCLUDE_DIRS}")
+  else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(Tesseract REQUIRED IMPORTED_TARGET tesseract lept)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::Tesseract)
   endif()
-  include(cmake/BuildTesseract.cmake)
 else()
   include(cmake/FetchTesseract.cmake)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Tesseract)
 endif()
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Tesseract)
 
 include(cmake/BuildInja.cmake)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE inja)
