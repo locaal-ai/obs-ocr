@@ -15,6 +15,8 @@
 The OCR Plugin for OBS provides real-time Optical Characted Recognition (OCR) or Text Recognition abilities over any OBS Source that provides an image - can be Image, Video, Browser or any other Source.
 It is based on the incredible [Tesseract](https://github.com/tesseract-ocr/tesseract) open source OCR engine, compiled and running directly inside OBS for real-time operation on every frame rendered.
 
+Reading scoreboards? Try https://scoresight.live free OCR tool specifically made (by us) for reading and broadcasting scoreboards.
+
 If this free plugin has been valuable to you consider adding a ⭐ to this GH repo, subscribing to [my YouTube channel](https://www.youtube.com/@royshilk) where I post updates, and supporting my work: https://www.patreon.com/RoyShilkrot https://github.com/sponsors/royshil
 
 <!--
