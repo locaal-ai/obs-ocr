@@ -26,6 +26,7 @@ struct filter_data {
 	std::string unique_id;
 	gs_texrender_t *texrender;
 	gs_stagesurf_t *stagesurface;
+    gs_effect_t *effect;
 
 	cv::Mat inputBGRA;
 	cv::Mat lastInputBGRA;

@@ -105,7 +105,7 @@ obs_properties_t *ocr_filter_properties(void *data)
 			for (const char *prop :
 			     {"page_segmentation_mode", "char_whitelist", "conf_threshold",
 			      "user_patterns", "enable_smoothing", "word_length", "window_size",
-			      "update_on_change_threshold", "update_on_change", "binarization_mode", "preview_binarization"}) {
+			      "update_on_change", "binarization_mode", "preview_binarization"}) {
 				obs_property_set_visible(obs_properties_get(props_modified, prop),
 							 advanced_settings);
 			}
@@ -333,6 +333,15 @@ void *ocr_filter_create(obs_data_t *settings, obs_source_t *source)
 
 	tf->tesseract_model = nullptr;
 
+    obs_enter_graphics();
+    char* error;
+    tf->effect = gs_effect_create_from_file(obs_module_file("preview.effect"), &error);
+    if (tf->effect == nullptr) {
+        obs_log(LOG_ERROR, "Failed to create effect from file: %s", error);
+        bfree(error);
+    }
+    obs_leave_graphics();
+
 	ocr_filter_update(tf, settings);
 
 	return tf;
@@ -350,6 +359,9 @@ void ocr_filter_destroy(void *data)
 		}
         if (tf->outputPreviewTexture != nullptr) {
             gs_texture_destroy(tf->outputPreviewTexture);
+        }
+        if (tf->effect != nullptr) {
+            gs_effect_destroy(tf->effect);
         }
 		obs_leave_graphics();
 
@@ -430,23 +442,28 @@ void ocr_filter_video_render(void *data, gs_effect_t *_effect)
         cv::Mat testImage(height, width, CV_8UC4, cv::Scalar(0, 0, 255, 255));
         gs_texture_set_image(tf->outputPreviewTexture, testImage.data, width * 4, false);
 
-        // render the binarized image
-        gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
-        gs_technique_t *tech = gs_effect_get_technique(effect, "Draw");
+        
+        gs_technique_t *tech = gs_effect_get_technique(tf->effect, "Draw");
 
-        if (!obs_source_process_filter_begin(tf->source, GS_RGBA,
-                            OBS_ALLOW_DIRECT_RENDERING)) {
-            if (tf->source) {
-                obs_source_skip_video_filter(tf->source);
-            }
-            return;
-        }
-        obs_log(LOG_INFO, "Rendering the binarized image");
+        // if (!obs_source_process_filter_begin(tf->source, GS_RGBA,
+        //                     OBS_ALLOW_DIRECT_RENDERING)) {
+        //     if (tf->source) {
+        //         obs_source_skip_video_filter(tf->source);
+        //     }
+        //     return;
+        // }
 
-        // const bool previous = gs_framebuffer_srgb_enabled();
-        // gs_enable_framebuffer_srgb(false);
-        gs_blend_state_push();
-        gs_blend_function(GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
+		// gs_clear(GS_CLEAR_COLOR, &background, 0.0f, 0);
+        // gs_matrix_push();
+        // gs_viewport_push();
+        gs_projection_push();
+		gs_ortho(0.0f, static_cast<float>(width), 0.0f,
+			 static_cast<float>(height), -100.0f, 100.0f);
+		gs_blend_state_push();
+		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
+
+        gs_effect_set_texture(gs_effect_get_param_by_name(tf->effect, "image"),
+                tf->outputPreviewTexture);
 
         // const size_t passes = gs_technique_begin(tech);
         // for (size_t i = 0; i < passes; i++) {
@@ -456,13 +473,15 @@ void ocr_filter_video_render(void *data, gs_effect_t *_effect)
         //     }
         // }
         // gs_technique_end(tech);
-        gs_effect_set_texture(gs_effect_get_param_by_name(effect, "image"),
-                tf->outputPreviewTexture);
+		while (gs_effect_loop(tf->effect, "Draw")) {
+			gs_draw_sprite(tf->outputPreviewTexture, 0, 0, 0);
+		}
 
-        obs_source_process_filter_end(tf->source, effect, 0, 0);
+        // render the binarized image
+        // obs_source_process_filter_end(tf->source, tf->effect, 0, 0);
 
         gs_blend_state_pop();
-        // gs_enable_framebuffer_srgb(previous);
+        gs_projection_pop();
     } else {
 	    obs_source_skip_video_filter(tf->source);
     }
