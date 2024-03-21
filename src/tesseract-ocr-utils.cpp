@@ -145,11 +145,11 @@ std::string strip(const std::string &str)
 	return str.substr(start, end - start + 1);
 }
 
-std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
+std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &image)
 {
 	// run the tesseract model
-	tf->tesseract_model->SetImage(imageBGRA.data, imageBGRA.cols, imageBGRA.rows, 4,
-				      (int)imageBGRA.step);
+    tf->tesseract_model->SetImage(image.data, image.cols, image.rows, image.channels(),
+                        (int)image.step);
 	char *text = tf->tesseract_model->GetUTF8Text();
 	if (text == nullptr) {
 		return "";
@@ -333,15 +333,44 @@ void tesseract_thread(void *data)
 					cv::cvtColor(diff, diff, cv::COLOR_BGRA2GRAY);
 					if (cv::countNonZero(diff) <
 					    change_threshold_from_image_area) {
-						// obs_log(LOG_INFO, "Image has not changed, skipping processing");
 						// skip the processing
 						continue;
 					}
 				}
 				tf->lastInputBGRA = imageBGRA.clone();
 
+                cv::Mat imageForOCR = imageBGRA.clone();
+
+                // if threshold is requested, apply it
+                if (tf->binarizationMode != 0) {
+                    cv::Mat gray;
+                    cv::cvtColor(imageForOCR, gray, cv::COLOR_BGRA2GRAY);
+                    if (tf->binarizationMode == 1)
+                        cv::threshold(gray, imageForOCR, tf->binarizationThreshold, 255, cv::THRESH_BINARY);
+                    else if (tf->binarizationMode == 2)
+                        cv::adaptiveThreshold(gray, imageForOCR, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, tf->binarizationBlockSize, 2);
+                    else if (tf->binarizationMode == 3)
+                        cv::adaptiveThreshold(gray, imageForOCR, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, tf->binarizationBlockSize, 2);
+                    else if (tf->binarizationMode == 4)
+                        cv::threshold(gray, imageForOCR, 0, 255, cv::THRESH_BINARY | cv::THRESH_TRIANGLE);
+                    else if (tf->binarizationMode == 5)
+                        cv::threshold(gray, imageForOCR, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+                }
+
+                if (tf->previewBinarization) {
+                    // lock the outputPreviewBGRALock
+                    std::unique_lock<std::mutex> lock(tf->outputPreviewBGRALock, std::try_to_lock);
+                    if (lock.owns_lock()) {
+                        if (imageForOCR.channels() == 4) {
+                            imageForOCR.copyTo(tf->outputPreviewBGRA);
+                        } else {
+                            cv::cvtColor(imageForOCR, tf->outputPreviewBGRA, cv::COLOR_GRAY2BGRA);
+                        }
+                    }
+                }
+
 				// Process the image
-				std::string ocr_result = run_tesseract_ocr(tf, imageBGRA);
+				std::string ocr_result = run_tesseract_ocr(tf, imageForOCR);
 
 				if (is_valid_output_source_name(tf->output_image_source_name)) {
 					// Extract the text detection boxes

@@ -13,6 +13,7 @@
 
 #include <util/bmem.h>
 
+
 #include <plugin-support.h>
 #include "filter-data.h"
 #include "obs-utils.h"
@@ -48,6 +49,16 @@ bool enable_smoothing_modified(obs_properties_t *props, obs_property_t *property
 	obs_property_set_visible(obs_properties_get(props, "window_size"), enable_smoothing);
 	UNUSED_PARAMETER(property);
 	return true;
+}
+
+bool binarization_mode_modified(obs_properties_t *props, obs_property_t *property,
+                               obs_data_t *settings)
+{
+    int binMode = obs_data_get_int(settings, "binarization_mode");
+    obs_property_set_visible(obs_properties_get(props, "binarization_threshold"), binMode == 1);
+    obs_property_set_visible(obs_properties_get(props, "binarization_block_size"), binMode == 2 || binMode == 3);
+    UNUSED_PARAMETER(property);
+    return true;
 }
 
 obs_properties_t *ocr_filter_properties(void *data)
@@ -94,13 +105,14 @@ obs_properties_t *ocr_filter_properties(void *data)
 			for (const char *prop :
 			     {"page_segmentation_mode", "char_whitelist", "conf_threshold",
 			      "user_patterns", "enable_smoothing", "word_length", "window_size",
-			      "update_on_change_threshold", "update_on_change"}) {
+			      "update_on_change_threshold", "update_on_change", "binarization_mode", "preview_binarization"}) {
 				obs_property_set_visible(obs_properties_get(props_modified, prop),
 							 advanced_settings);
 			}
 			if (advanced_settings) {
 				enable_smoothing_modified(props_modified, nullptr, settings);
 				update_on_change_modified(props_modified, nullptr, settings);
+                binarization_mode_modified(props_modified, nullptr, settings);
 			}
 			UNUSED_PARAMETER(property);
 			return true;
@@ -126,13 +138,36 @@ obs_properties_t *ocr_filter_properties(void *data)
 	obs_property_list_add_int(psm_list, "Sparse text with orientation",
 				  (long long)tesseract::PSM_SPARSE_TEXT_OSD);
 
+    // Add binarization options dropdown list
+    obs_property_t *binarization_list = obs_properties_add_list(props, "binarization_mode",
+                                                               obs_module_text("BinarizationMode"),
+                                                               OBS_COMBO_TYPE_LIST,
+                                                               OBS_COMBO_FORMAT_INT);
+    obs_property_list_add_int(binarization_list, "No binarization", (long long)0);
+    obs_property_list_add_int(binarization_list, "Threshold", (long long)1);
+    obs_property_list_add_int(binarization_list, "Adaptive mean", (long long)2);
+    obs_property_list_add_int(binarization_list, "Adaptive gaussian", (long long)3);
+    obs_property_list_add_int(binarization_list, "Triangle", (long long)4);
+    obs_property_list_add_int(binarization_list, "Otsu", (long long)5);
+
+    // add threshold parameter for binarization
+    obs_properties_add_int_slider(props, "binarization_threshold", obs_module_text("BinarizationThreshold"), 0,
+                                  255, 1);
+
+    // add adaptive theshold block size
+    obs_properties_add_int_slider(props, "binarization_block_size", obs_module_text("BinarizationBlockSize"), 3,
+                                  255, 2);
+
+    // add callback to enable or disable the binarization threshold and block size properties
+    obs_property_set_modified_callback(
+        obs_properties_get(props, "binarization_mode"), binarization_mode_modified);
+
+    // Add option for previewing the binarization
+    obs_properties_add_bool(props, "preview_binarization", obs_module_text("PreviewBinarization"));
+
 	// Add character whitelist
 	obs_properties_add_text(props, "char_whitelist", obs_module_text("CharWhitelist"),
 				OBS_TEXT_DEFAULT);
-
-	// Add user patterns multiline text input
-	obs_properties_add_text(props, "user_patterns", obs_module_text("UserPatterns"),
-				OBS_TEXT_MULTILINE);
 
 	// Add conf thershold property
 	obs_properties_add_int_slider(props, "conf_threshold", obs_module_text("ConfThreshold"), 0,
@@ -212,13 +247,16 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_string(settings, "language", "eng");
 	obs_data_set_default_bool(settings, "advanced_settings", false);
 	obs_data_set_default_int(settings, "page_segmentation_mode", tesseract::PSM_SINGLE_WORD);
+    obs_data_set_default_int(settings, "binarization_mode", 0);
+    obs_data_set_default_int(settings, "binarization_threshold", 127);
+    obs_data_set_default_int(settings, "binarization_block_size", 15);
+    obs_data_set_default_bool(settings, "preview_binarization", false);
 	obs_data_set_default_string(settings, "text_sources", "none");
 	obs_data_set_default_string(settings, "text_detection_mask_sources", "none");
 	obs_data_set_default_string(
 		settings, "char_whitelist",
 		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:;!?-()[]{}<>|/@#$%&*+=_~ ");
 	obs_data_set_default_int(settings, "conf_threshold", 50);
-	obs_data_set_default_string(settings, "user_patterns", "");
 	obs_data_set_default_bool(settings, "enable_smoothing", false);
 	obs_data_set_default_int(settings, "word_length", 5);
 	obs_data_set_default_int(settings, "window_size", 10);
@@ -244,8 +282,11 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->language = new_language;
 
 	tf->pageSegmentationMode = (int)obs_data_get_int(settings, "page_segmentation_mode");
+    tf->binarizationMode = (int)obs_data_get_int(settings, "binarization_mode");
+    tf->binarizationThreshold = (int)obs_data_get_int(settings, "binarization_threshold");
+    tf->binarizationBlockSize = (int)obs_data_get_int(settings, "binarization_block_size");
+    tf->previewBinarization = obs_data_get_bool(settings, "preview_binarization");
 	tf->char_whitelist = obs_data_get_string(settings, "char_whitelist");
-	tf->user_patterns = obs_data_get_string(settings, "user_patterns");
 	tf->conf_threshold = (int)obs_data_get_int(settings, "conf_threshold");
 	tf->enable_smoothing = obs_data_get_bool(settings, "enable_smoothing");
 	tf->word_length = obs_data_get_int(settings, "word_length");
@@ -307,6 +348,9 @@ void ocr_filter_destroy(void *data)
 		if (tf->stagesurface) {
 			gs_stagesurface_destroy(tf->stagesurface);
 		}
+        if (tf->outputPreviewTexture != nullptr) {
+            gs_texture_destroy(tf->outputPreviewTexture);
+        }
 		obs_leave_graphics();
 
 		stop_and_join_tesseract_thread(tf);
@@ -352,5 +396,74 @@ void ocr_filter_video_render(void *data, gs_effect_t *_effect)
 		return;
 	}
 
-	obs_source_skip_video_filter(tf->source);
+    // if preview binarization is enabled, render the binarized image
+    if (tf->previewBinarization) {
+        {
+            // lock the outputPreviewBGRALock mutex
+            std::lock_guard<std::mutex> lock(tf->outputPreviewBGRALock);
+            if (tf->outputPreviewBGRA.empty()) {
+                obs_log(LOG_ERROR, "Binarized image is empty");
+                obs_source_skip_video_filter(tf->source);
+                return;
+            }
+            if (tf->outputPreviewBGRA.cols != width || tf->outputPreviewBGRA.rows != height) {
+                obs_log(LOG_ERROR, "Binarized image size does not match the input size (%dx%d vs %dx%d)",
+                        tf->outputPreviewBGRA.cols, tf->outputPreviewBGRA.rows, width, height);
+                obs_source_skip_video_filter(tf->source);
+                return;
+            }
+        }
+        // create a texture from the binarized image
+        if (tf->outputPreviewTexture == nullptr ||
+            gs_texture_get_width(tf->outputPreviewTexture) != width ||
+            gs_texture_get_height(tf->outputPreviewTexture) != height)
+        {
+            if (tf->outputPreviewTexture != nullptr) {
+                gs_texture_destroy(tf->outputPreviewTexture);
+            }
+            obs_log(LOG_INFO, "Creating new output preview texture with size %dx%d", width, height);
+            tf->outputPreviewTexture = gs_texture_create(width, height, GS_BGRA, 1, nullptr, 0);
+        }
+
+
+        // create a cv::Mat all red to test the texture
+        cv::Mat testImage(height, width, CV_8UC4, cv::Scalar(0, 0, 255, 255));
+        gs_texture_set_image(tf->outputPreviewTexture, testImage.data, width * 4, false);
+
+        // render the binarized image
+        gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
+        gs_technique_t *tech = gs_effect_get_technique(effect, "Draw");
+
+        if (!obs_source_process_filter_begin(tf->source, GS_RGBA,
+                            OBS_ALLOW_DIRECT_RENDERING)) {
+            if (tf->source) {
+                obs_source_skip_video_filter(tf->source);
+            }
+            return;
+        }
+        obs_log(LOG_INFO, "Rendering the binarized image");
+
+        // const bool previous = gs_framebuffer_srgb_enabled();
+        // gs_enable_framebuffer_srgb(false);
+        gs_blend_state_push();
+        gs_blend_function(GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
+
+        // const size_t passes = gs_technique_begin(tech);
+        // for (size_t i = 0; i < passes; i++) {
+        //     if (gs_technique_begin_pass(tech, i)) {
+        //         gs_draw_sprite(tf->outputPreviewTexture, 0, width, height);
+        //         gs_technique_end_pass(tech);
+        //     }
+        // }
+        // gs_technique_end(tech);
+        gs_effect_set_texture(gs_effect_get_param_by_name(effect, "image"),
+                tf->outputPreviewTexture);
+
+        obs_source_process_filter_end(tf->source, effect, 0, 0);
+
+        gs_blend_state_pop();
+        // gs_enable_framebuffer_srgb(previous);
+    } else {
+	    obs_source_skip_video_filter(tf->source);
+    }
 }
