@@ -38,11 +38,13 @@
     },
     "name": "obs-ocr",
     "displayName": "OBS OCR Plugin",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "author": "Roy Shilkrot",
     "website": "https://github.com/occ-ai/obs-ocr",
     "email": "roy.shil@gmail.com",
     "uuids": {
-        "windowsApp": "B3A83484-2D3F-4794-AFC3-4A5B891E4613"
+        "windowsApp": "B3A83484-2D3F-4794-AFC3-4A5B891E4613",
+        "macosPackage": "BEFAFD2C-0860-41CF-AE05-662C79F803CB",
+        "macosInstaller": "0DC1D5E8-376C-4B5D-8529-B1153BB91DFF"
     }
 }
