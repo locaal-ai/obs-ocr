@@ -26,12 +26,19 @@ struct filter_data {
 	std::string unique_id;
 	gs_texrender_t *texrender;
 	gs_stagesurf_t *stagesurface;
+	gs_effect_t *effect;
 
 	cv::Mat inputBGRA;
 	cv::Mat lastInputBGRA;
+	cv::Mat outputPreviewBGRA;
+	gs_texture_t *outputPreviewTexture = nullptr;
 	tesseract::TessBaseAPI *tesseract_model;
 	std::string language;
 	int pageSegmentationMode;
+	int binarizationMode;
+	int binarizationThreshold;
+	int binarizationBlockSize;
+	bool previewBinarization;
 	std::string char_whitelist;
 	std::string user_patterns;
 	int conf_threshold;
@@ -47,8 +54,9 @@ struct filter_data {
 	bool isDisabled;
 
 	std::mutex inputBGRALock;
-	std::mutex outputLock;
+	std::mutex outputPreviewBGRALock;
 	std::mutex tesseract_mutex;
+	std::mutex tesseract_settings_mutex;
 	bool tesseract_thread_run;
 	std::condition_variable tesseract_thread_cv;
 	std::thread tesseract_thread;

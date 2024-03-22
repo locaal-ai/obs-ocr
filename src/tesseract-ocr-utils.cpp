@@ -47,18 +47,17 @@ void cleanup_config_files(const std::string &unique_id)
 
 void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required)
 {
-	// Load model
-	obs_log(LOG_INFO, "Loading tesseract model from: %s", tf->tesseractTraineddataFilepath);
 	try {
-		stop_and_join_tesseract_thread(tf);
-
 		if (hard_tesseract_init_required) {
+			stop_and_join_tesseract_thread(tf);
 			if (tf->tesseract_model != nullptr) {
 				tf->tesseract_model->End();
 				delete tf->tesseract_model;
 				tf->tesseract_model = nullptr;
 			}
 		}
+
+		std::lock_guard<std::mutex> lock(tf->tesseract_settings_mutex);
 
 		char **configs = nullptr;
 		int configs_size = 0;
@@ -100,8 +99,12 @@ void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required
 		}
 
 		if (hard_tesseract_init_required) {
+			obs_log(LOG_INFO, "Loading tesseract model from: %s",
+				tf->tesseractTraineddataFilepath);
+
 			tf->tesseract_model = new tesseract::TessBaseAPI();
 
+			// Load model
 			int retval = tf->tesseract_model->Init(tf->tesseractTraineddataFilepath,
 							       tf->language.c_str(),
 							       tesseract::OEM_LSTM_ONLY, configs,
@@ -125,9 +128,11 @@ void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required
 				tf->word_length, tf->window_size);
 		}
 
-		// start the thread
-		std::thread new_thread(tesseract_thread, tf);
-		tf->tesseract_thread.swap(new_thread);
+		if (hard_tesseract_init_required) {
+			// start the thread
+			std::thread new_thread(tesseract_thread, tf);
+			tf->tesseract_thread.swap(new_thread);
+		}
 	} catch (std::exception &e) {
 		obs_log(LOG_ERROR, "Failed to load tesseract model: %s", e.what());
 		return;
@@ -145,11 +150,11 @@ std::string strip(const std::string &str)
 	return str.substr(start, end - start + 1);
 }
 
-std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &imageBGRA)
+std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &image)
 {
 	// run the tesseract model
-	tf->tesseract_model->SetImage(imageBGRA.data, imageBGRA.cols, imageBGRA.rows, 4,
-				      (int)imageBGRA.step);
+	tf->tesseract_model->SetImage(image.data, image.cols, image.rows, image.channels(),
+				      (int)image.step);
 	char *text = tf->tesseract_model->GetUTF8Text();
 	if (text == nullptr) {
 		return "";
@@ -319,6 +324,8 @@ void tesseract_thread(void *data)
 
 		if (!imageBGRA.empty()) {
 			try {
+				std::lock_guard<std::mutex> lock(tf->tesseract_settings_mutex);
+
 				// if update on change is true check if the image has changed
 				if (tf->update_on_change &&
 				    imageBGRA.size() == tf->lastInputBGRA.size()) {
@@ -333,15 +340,63 @@ void tesseract_thread(void *data)
 					cv::cvtColor(diff, diff, cv::COLOR_BGRA2GRAY);
 					if (cv::countNonZero(diff) <
 					    change_threshold_from_image_area) {
-						// obs_log(LOG_INFO, "Image has not changed, skipping processing");
 						// skip the processing
 						continue;
 					}
 				}
 				tf->lastInputBGRA = imageBGRA.clone();
 
+				cv::Mat imageForOCR = imageBGRA.clone();
+
+				// if threshold is requested, apply it
+				if (tf->binarizationMode != 0) {
+					cv::Mat gray;
+					cv::cvtColor(imageForOCR, gray, cv::COLOR_BGRA2GRAY);
+
+					if (tf->binarizationMode == 1)
+						cv::threshold(gray, imageForOCR,
+							      tf->binarizationThreshold, 255,
+							      cv::THRESH_BINARY);
+					else if (tf->binarizationMode == 2 ||
+						 tf->binarizationMode == 3) {
+						// ensure that the block size is odd
+						uint16_t block_size = tf->binarizationBlockSize;
+						if (tf->binarizationBlockSize % 2 == 0) {
+							block_size++;
+						}
+						if (tf->binarizationMode == 2) {
+							cv::adaptiveThreshold(
+								gray, imageForOCR, 255,
+								cv::ADAPTIVE_THRESH_MEAN_C,
+								cv::THRESH_BINARY, block_size, 2);
+						} else {
+							cv::adaptiveThreshold(
+								gray, imageForOCR, 255,
+								cv::ADAPTIVE_THRESH_GAUSSIAN_C,
+								cv::THRESH_BINARY, block_size, 2);
+						}
+					} else if (tf->binarizationMode == 4)
+						cv::threshold(gray, imageForOCR, 0, 255,
+							      cv::THRESH_BINARY |
+								      cv::THRESH_TRIANGLE);
+					else if (tf->binarizationMode == 5)
+						cv::threshold(gray, imageForOCR, 0, 255,
+							      cv::THRESH_BINARY | cv::THRESH_OTSU);
+				}
+
+				if (tf->previewBinarization) {
+					// lock the outputPreviewBGRALock
+					std::lock_guard<std::mutex> lock(tf->outputPreviewBGRALock);
+					if (imageForOCR.channels() == 4) {
+						imageForOCR.copyTo(tf->outputPreviewBGRA);
+					} else {
+						cv::cvtColor(imageForOCR, tf->outputPreviewBGRA,
+							     cv::COLOR_GRAY2BGRA);
+					}
+				}
+
 				// Process the image
-				std::string ocr_result = run_tesseract_ocr(tf, imageBGRA);
+				std::string ocr_result = run_tesseract_ocr(tf, imageForOCR);
 
 				if (is_valid_output_source_name(tf->output_image_source_name)) {
 					// Extract the text detection boxes
