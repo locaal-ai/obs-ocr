@@ -1,5 +1,6 @@
 uniform float4x4 ViewProj;
 uniform texture2d image;
+uniform texture2d myimage;
 
 sampler_state def_sampler {
 	Filter   = Linear;
@@ -22,11 +23,10 @@ VertInOut VSDefault(VertInOut vert_in)
 
 float4 PSDrawBare(VertInOut vert_in) : TARGET
 {
-	//return image.Sample(def_sampler, vert_in.uv);
-    return float4(1, 0, 0, 1);
+	return float4(myimage.Sample(def_sampler, vert_in.uv).bgr, 1);
 }
 
-technique Draw
+technique MyDraw
 {
 	pass
 	{
