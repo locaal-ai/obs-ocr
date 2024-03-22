@@ -53,7 +53,7 @@ bool enable_smoothing_modified(obs_properties_t *props, obs_property_t *property
 bool binarization_mode_modified(obs_properties_t *props, obs_property_t *property,
 				obs_data_t *settings)
 {
-	int binMode = obs_data_get_int(settings, "binarization_mode");
+	long long binMode = obs_data_get_int(settings, "binarization_mode");
 	obs_property_set_visible(obs_properties_get(props, "binarization_threshold"), binMode == 1);
 	obs_property_set_visible(obs_properties_get(props, "binarization_block_size"),
 				 binMode == 2 || binMode == 3);
@@ -421,8 +421,8 @@ void ocr_filter_video_render(void *data, gs_effect_t *_effect)
 				obs_source_skip_video_filter(tf->source);
 				return;
 			}
-			if (tf->outputPreviewBGRA.cols != width ||
-			    tf->outputPreviewBGRA.rows != height) {
+			if ((uint32_t)tf->outputPreviewBGRA.cols != width ||
+			    (uint32_t)tf->outputPreviewBGRA.rows != height) {
 				obs_source_skip_video_filter(tf->source);
 				return;
 			}
