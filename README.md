@@ -15,7 +15,7 @@
 The OCR Plugin for OBS provides real-time Optical Characted Recognition (OCR) or Text Recognition abilities over any OBS Source that provides an image - can be Image, Video, Browser or any other Source.
 It is based on the incredible [Tesseract](https://github.com/tesseract-ocr/tesseract) open source OCR engine, compiled and running directly inside OBS for real-time operation on every frame rendered.
 
-Reading scoreboards? Try https://scoresight.live free OCR tool specifically made (by us) for reading and broadcasting scoreboards.
+**Reading scoreboards**? Try https://scoresight.live free OCR tool specifically made (by us) for reading and broadcasting scoreboards.
 
 If this free plugin has been valuable to you consider adding a ⭐ to this GH repo, subscribing to [my YouTube channel](https://www.youtube.com/@royshilk) where I post updates, and supporting my work: https://www.patreon.com/RoyShilkrot https://github.com/sponsors/royshil
 
@@ -32,23 +32,17 @@ If this free plugin has been valuable to you consider adding a ⭐ to this GH re
   4 Minutes
 </div>
 
-#### AI on OBS Tutorials
-Bring AI to your OBS! Be a x10 streamer and content creator with AI tools:
+#### Do more with OCR Plugin
+OCR Plugin enables many use cases for enhancing your stream or recording:
 <div align="center">
-  <a href="https://youtu.be/4BTmoKr0YMw" target="_blank">
-    <img width="27%" src="https://github-production-user-asset-6210df.s3.amazonaws.com/441170/283315931-70c0c583-d1dc-4bd6-9ace-86c8e47f1229.jpg" />
+  <a href="https://youtu.be/vVclLhFpBc8" target="_blank">
+    <img width="27%" src="https://github.com/occ-ai/obs-ocr/assets/441170/91febd15-a155-43fb-9b24-b1da99ad8c38" />
   </a>
-  <a href="https://youtu.be/2wJ72DcgBew" target="_blank">
-    <img width="27%" src="https://github-production-user-asset-6210df.s3.amazonaws.com/441170/284642194-6c97a6e7-3ba3-4e57-b0b6-612615266ae6.jpeg" />
-  </a>
-  <a href="https://youtu.be/kltJbg9hH4s" target="_blank">
-    <img width="27%" src="https://github-production-user-asset-6210df.s3.amazonaws.com/441170/284643465-a7aa2d13-c968-404d-8300-827fe069832d.jpg" />
+  <a href="https://youtu.be/hQSCJaUgwhs" target="_blank">
+    <img width="27%" src="https://github.com/occ-ai/obs-ocr/assets/441170/33bf35b3-0b98-4920-920b-9694beefd822" />
   </a>
 </div>
 
-
-### Code Walkthrough
-TODO: Will be provided shortly.
 
 ### Features
 Available now:
