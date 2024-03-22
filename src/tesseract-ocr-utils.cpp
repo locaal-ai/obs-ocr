@@ -384,6 +384,13 @@ void tesseract_thread(void *data)
 							      cv::THRESH_BINARY | cv::THRESH_OTSU);
 				}
 
+				if (tf->dilationIterations > 0) {
+					cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
+										    cv::Size(3, 3));
+					cv::dilate(imageForOCR, imageForOCR, element,
+						   cv::Point(-1, -1), tf->dilationIterations);
+				}
+
 				if (tf->previewBinarization) {
 					// lock the outputPreviewBGRALock
 					std::lock_guard<std::mutex> lock(tf->outputPreviewBGRALock);
@@ -393,6 +400,15 @@ void tesseract_thread(void *data)
 						cv::cvtColor(imageForOCR, tf->outputPreviewBGRA,
 							     cv::COLOR_GRAY2BGRA);
 					}
+				}
+
+				if (tf->rescaleImage) {
+					// scale to height tf->rescaleTargetSize maintaining aspect ratio
+					cv::Mat resized;
+					float scale =
+						(float)tf->rescaleTargetSize / imageForOCR.rows;
+					cv::resize(imageForOCR, resized, cv::Size(), scale, scale);
+					imageForOCR = resized;
 				}
 
 				// Process the image

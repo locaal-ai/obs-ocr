@@ -59,17 +59,21 @@ Available now:
  - "Semantic Smoothing": getting more consistent outputs with higher accuracy and confidence by "averaging" several text outputs
  - Timing/Running modes: per X-milliseconds
  - Output formatting (with inja): e.g. "Score: {{score}}"
+ - Output text detection to image source
+ - Binarization methods (threshold, Otsu, Triangle, adaptive)
+ - Image Dilation
+ - Rescale (optimal Tesseract performance is at 35 pixels / character)
 
 Coming soon:
  - More languages built-in (pretrained Tesseract models)
  - Allowing external model files
- - More output capabilities e.g. Parsing, saving a file, websocket event, etc.
- - Output to more built-in OBS sources (Image, etc.)
+ - More output capabilities e.g. Parsing, websocket event, etc.
  - Extracting text from complex image layouts
  - Different timing/run modes: per X-frames, image change, etc.
  - Image stabilization
- - Image processing: Perspective warping, auto-cropping, binarization, etc.
- - Text detection mask output: Use for blurring / hiding text on scene
+ - Optical flow tracking for fast moving text
+ - Image processing: Perspective warping, auto-cropping, etc.
+ - Advanced binarization: Niblack, Sauvola
 
 Check out our other plugins:
 - [Background Removal](https://github.com/occ-ai/obs-backgroundremoval) removes background from webcam without a green screen.
