@@ -39,6 +39,9 @@ struct filter_data {
 	int binarizationThreshold;
 	int binarizationBlockSize;
 	bool previewBinarization;
+    int dilationIterations;
+    bool rescaleImage;
+    int rescaleTargetSize;
 	std::string char_whitelist;
 	std::string user_patterns;
 	int conf_threshold;

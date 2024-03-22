@@ -62,6 +62,16 @@ bool binarization_mode_modified(obs_properties_t *props, obs_property_t *propert
 	return true;
 }
 
+bool rescale_modified(obs_properties_t *props_modified, obs_property_t *property,
+		      obs_data_t *settings)
+{
+	bool rescale_image = obs_data_get_bool(settings, "rescale_image");
+	obs_property_set_visible(obs_properties_get(props_modified, "rescale_target_size"),
+				 rescale_image);
+	UNUSED_PARAMETER(property);
+	return true;
+}
+
 obs_properties_t *ocr_filter_properties(void *data)
 {
 	obs_properties_t *props = obs_properties_create();
@@ -107,7 +117,9 @@ obs_properties_t *ocr_filter_properties(void *data)
 			     {"page_segmentation_mode", "char_whitelist", "conf_threshold",
 			      "user_patterns", "enable_smoothing", "word_length", "window_size",
 			      "update_on_change", "binarization_mode", "preview_binarization",
-			      "binarization_threshold", "binarization_block_size"}) {
+			      "binarization_threshold", "binarization_block_size", "rescale_image",
+			      "rescale_target_size", "update_on_change_threshold",
+			      "dilation_iterations"}) {
 				obs_property_set_visible(obs_properties_get(props_modified, prop),
 							 advanced_settings);
 			}
@@ -115,6 +127,7 @@ obs_properties_t *ocr_filter_properties(void *data)
 				enable_smoothing_modified(props_modified, nullptr, settings);
 				update_on_change_modified(props_modified, nullptr, settings);
 				binarization_mode_modified(props_modified, nullptr, settings);
+				rescale_modified(props_modified, nullptr, settings);
 			}
 			UNUSED_PARAMETER(property);
 			return true;
@@ -163,9 +176,33 @@ obs_properties_t *ocr_filter_properties(void *data)
 	obs_property_set_modified_callback(obs_properties_get(props, "binarization_mode"),
 					   binarization_mode_modified);
 
+	// add dilation iterations
+	obs_properties_add_int_slider(props, "dilation_iterations",
+				      obs_module_text("DilationIterations"), 0, 10, 1);
+
 	// Add option for previewing the binarization
 	obs_properties_add_bool(props, "preview_binarization",
 				obs_module_text("PreviewBinarization"));
+
+	// add option for rescaling the image
+	obs_properties_add_bool(props, "rescale_image", obs_module_text("RescaleImage"));
+
+	// add rescale target size slider
+	obs_properties_add_int_slider(props, "rescale_target_size",
+				      obs_module_text("RescaleTargetSize"), 10, 100, 1);
+
+	// add callback to enable or disable the rescale target size property
+	obs_property_set_modified_callback(
+		obs_properties_get(props, "rescale_image"),
+		[](obs_properties_t *props_modified, obs_property_t *property,
+		   obs_data_t *settings) {
+			bool rescale_image = obs_data_get_bool(settings, "rescale_image");
+			obs_property_set_visible(obs_properties_get(props_modified,
+								    "rescale_target_size"),
+						 rescale_image);
+			UNUSED_PARAMETER(property);
+			return true;
+		});
 
 	// Add character whitelist
 	obs_properties_add_text(props, "char_whitelist", obs_module_text("CharWhitelist"),
@@ -253,6 +290,9 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "binarization_threshold", 127);
 	obs_data_set_default_int(settings, "binarization_block_size", 15);
 	obs_data_set_default_bool(settings, "preview_binarization", false);
+	obs_data_set_default_int(settings, "dilation_iterations", 0);
+	obs_data_set_default_bool(settings, "rescale_image", true);
+	obs_data_set_default_int(settings, "rescale_target_size", 35);
 	obs_data_set_default_string(settings, "text_sources", "none");
 	obs_data_set_default_string(settings, "text_detection_mask_sources", "none");
 	obs_data_set_default_string(
@@ -288,6 +328,9 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->binarizationThreshold = (int)obs_data_get_int(settings, "binarization_threshold");
 	tf->binarizationBlockSize = (int)obs_data_get_int(settings, "binarization_block_size");
 	tf->previewBinarization = obs_data_get_bool(settings, "preview_binarization");
+	tf->dilationIterations = (int)obs_data_get_int(settings, "dilation_iterations");
+	tf->rescaleImage = obs_data_get_bool(settings, "rescale_image");
+	tf->rescaleTargetSize = (int)obs_data_get_int(settings, "rescale_target_size");
 	tf->char_whitelist = obs_data_get_string(settings, "char_whitelist");
 	tf->conf_threshold = (int)obs_data_get_int(settings, "conf_threshold");
 	tf->enable_smoothing = obs_data_get_bool(settings, "enable_smoothing");
