@@ -360,7 +360,7 @@ void tesseract_thread(void *data)
 					else if (tf->binarizationMode == 2 ||
 						 tf->binarizationMode == 3) {
 						// ensure that the block size is odd
-						uint16_t block_size = tf->binarizationBlockSize;
+						int block_size = tf->binarizationBlockSize;
 						if (tf->binarizationBlockSize % 2 == 0) {
 							block_size++;
 						}
@@ -406,7 +406,7 @@ void tesseract_thread(void *data)
 					// scale to height tf->rescaleTargetSize maintaining aspect ratio
 					cv::Mat resized;
 					float scale =
-						(float)tf->rescaleTargetSize / imageForOCR.rows;
+						(float)tf->rescaleTargetSize / (float)imageForOCR.rows;
 					cv::resize(imageForOCR, resized, cv::Size(), scale, scale);
 					imageForOCR = resized;
 				}
