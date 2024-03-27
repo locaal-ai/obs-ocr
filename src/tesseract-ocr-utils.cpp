@@ -405,8 +405,8 @@ void tesseract_thread(void *data)
 				if (tf->rescaleImage) {
 					// scale to height tf->rescaleTargetSize maintaining aspect ratio
 					cv::Mat resized;
-					float scale =
-						(float)tf->rescaleTargetSize / (float)imageForOCR.rows;
+					float scale = (float)tf->rescaleTargetSize /
+						      (float)imageForOCR.rows;
 					cv::resize(imageForOCR, resized, cv::Size(), scale, scale);
 					imageForOCR = resized;
 				}
