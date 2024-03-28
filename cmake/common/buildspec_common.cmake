@@ -89,7 +89,8 @@ function(_setup_obs_studio)
   execute_process(
     COMMAND "${CMAKE_COMMAND}" --build build_${arch} --target obs-frontend-api --config Debug --parallel
     WORKING_DIRECTORY "${dependencies_dir}/${_obs_destination}"
-    RESULT_VARIABLE _process_result COMMAND_ERROR_IS_FATAL ANY)
+    RESULT_VARIABLE _process_result COMMAND_ERROR_IS_FATAL ANY
+    OUTPUT_QUIET)
   message(STATUS "Build ${label} (${arch}) - done")
 
   message(STATUS "Install ${label} (${arch})")
