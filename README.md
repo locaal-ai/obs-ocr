@@ -47,7 +47,7 @@ OCR Plugin enables many use cases for enhancing your stream or recording:
 ### Features
 Available now:
  - Add OCR Filter to any source with image or video output
- - Choose from English model or Scoreboard model
+ - Choose from Scoreboard model or English, French, Spanish, German, Chinese, Japanese, Arabic, Turkish, Portugese, Hindi, Russian and Italian
  - Output OCR result to an OBS Text Source
  - Choose the segmentation mode: Word, Line, Page, etc.
  - "Semantic Smoothing": getting more consistent outputs with higher accuracy and confidence by "averaging" several text outputs
@@ -71,10 +71,11 @@ Coming soon:
 
 Check out our other plugins:
 - [Background Removal](https://github.com/occ-ai/obs-backgroundremoval) removes background from webcam without a green screen.
-- 🚧 Experimental 🚧 [CleanStream](https://github.com/occ-ai/obs-cleanstream) for real-time filler word (uh,um) and profanity removal from live audio stream
+- [Detect](https://github.com/occ-ai/obs-detect) will detect and track >80 types of objects in any OBS source.
 - [LocalVocal](https://github.com/occ-ai/obs-localvocal) speech AI assistant plugin for real-time, local transcription (captions), translation and more language functions
 - [Polyglot](https://github.com/occ-ai/obs-polyglot) translation AI plugin for real-time, local translation to hunderds of languages
 - [URL/API Source](https://github.com/occ-ai/obs-urlsource) will connect to any URL/API HTTP and get the data/image/audio to your scene.
+- 🚧 Experimental 🚧 [CleanStream](https://github.com/occ-ai/obs-cleanstream) for real-time filler word (uh,um) and profanity removal from live audio stream
 
 If you like this work, which is given to you completely free of charge, please consider supporting it https://github.com/sponsors/royshil or https://www.patreon.com/RoyShilkrot
 
