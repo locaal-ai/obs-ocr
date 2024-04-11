@@ -27,4 +27,8 @@ const char *const WHITELIST_CHARS_PORTUGUESE =
 const char *const WHITELIST_CHARS_RUSSIAN =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;':\",./<>?`~\\абвгдеёжзийклмнопрстуфхцчшщъыьэюя ";
 
+const int OUTPUT_IMAGE_OPTION_DETECTION_MASK = 0;
+const int OUTPUT_IMAGE_OPTION_TEXT_OVERLAY = 1;
+const int OUTPUT_IMAGE_OPTION_TEXT_BACKGROUND = 2;
+
 #endif /* CONSTS_H */

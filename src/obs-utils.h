@@ -25,6 +25,9 @@ void update_image_source_on_settings(struct filter_data *usd, obs_data_t *settin
 
 void check_plugin_config_folder_exists();
 
-void write_png_file(const char *filename, const unsigned char *image8uc3, int width, int height);
+void write_png_file_8uc1(const char *filename, const unsigned char *image8uc3, int width,
+			 int height);
+void write_png_file_rgba(const char *filename, const unsigned char *imageRGBA, int width,
+			 int height);
 
 #endif /* OBS_UTILS_H */

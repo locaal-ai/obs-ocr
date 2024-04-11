@@ -225,6 +225,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 	// Output formatting
 	obs_properties_add_text(props, "output_formatting", obs_module_text("OutputFormatting"),
 				OBS_TEXT_MULTILINE);
+	// hide the output formatting property by default
+	obs_property_set_visible(obs_properties_get(props, "output_formatting"), false);
 
 	// Add a property for the output text source
 	obs_property_t *text_sources =
@@ -253,6 +255,12 @@ obs_properties_t *ocr_filter_properties(void *data)
 			obs_property_set_visible(obs_properties_get(props_modified,
 								    "output_file_path"),
 						 save_to_file);
+			// show/hide "output_formatting" property based on the selected output source
+			bool show_output_formatting =
+				strcmp(obs_data_get_string(settings, "text_sources"), "none") != 0;
+			obs_property_set_visible(obs_properties_get(props_modified,
+								    "output_formatting"),
+						 show_output_formatting);
 			UNUSED_PARAMETER(property);
 			return true;
 		});
@@ -267,6 +275,30 @@ obs_properties_t *ocr_filter_properties(void *data)
 	obs_property_list_add_string(image_sources, obs_module_text("NoOutput"), "none");
 	// Add the sources
 	obs_enum_sources(add_image_sources_to_list, image_sources);
+	// add change callback for the image sources
+	obs_property_set_modified_callback(
+		obs_properties_get(props, "text_detection_mask_sources"),
+		[](obs_properties_t *props_modified, obs_property_t *, obs_data_t *settings) {
+			// hide/show the image_output_option property based on the selected image source
+			bool show_image_output_option =
+				strcmp(obs_data_get_string(settings, "text_detection_mask_sources"),
+				       "none") != 0;
+			obs_property_set_visible(obs_properties_get(props_modified,
+								    "image_output_option"),
+						 show_image_output_option);
+			return true;
+		});
+
+	// add a choice for the image output format: detection boxes mask, text rendering, or text with background
+	obs_property_t *output_format = obs_properties_add_list(
+		props, "image_output_option", obs_module_text("ImageOutputOption"),
+		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(output_format, obs_module_text("DetectionBoxesMask"),
+				  OUTPUT_IMAGE_OPTION_DETECTION_MASK);
+	obs_property_list_add_int(output_format, obs_module_text("TextRendering"),
+				  OUTPUT_IMAGE_OPTION_TEXT_OVERLAY);
+	obs_property_list_add_int(output_format, obs_module_text("TextWithBackground"),
+				  OUTPUT_IMAGE_OPTION_TEXT_BACKGROUND);
 
 	// Add a informative text about the plugin
 	obs_properties_add_text(
@@ -302,6 +334,7 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "word_length", 5);
 	obs_data_set_default_int(settings, "window_size", 10);
 	obs_data_set_default_string(settings, "output_formatting", "{{output}}");
+	obs_data_set_default_int(settings, "image_output_option", 0);
 }
 
 void ocr_filter_update(void *data, obs_data_t *settings)
@@ -340,6 +373,7 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->update_on_change = obs_data_get_bool(settings, "update_on_change");
 	tf->update_on_change_threshold =
 		(int)obs_data_get_int(settings, "update_on_change_threshold");
+	tf->output_image_option = (int)obs_data_get_int(settings, "image_output_option");
 
 	// Initialize the Tesseract OCR model
 	initialize_tesseract_ocr(tf, hard_tesseract_init_required);

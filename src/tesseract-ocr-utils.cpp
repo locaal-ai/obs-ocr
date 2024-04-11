@@ -1,6 +1,8 @@
 #include "tesseract-ocr-utils.h"
 #include "plugin-support.h"
 #include "obs-utils.h"
+#include "consts.h"
+#include "text-render-helper.h"
 
 #include <obs-module.h>
 
@@ -179,19 +181,18 @@ std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &image)
 	return recognitionResult;
 }
 
-std::vector<std::vector<cv::Point>> extract_text_detection_boxes(filter_data *tf,
-								 cv::Size imageSize)
+std::vector<OCRBox> extract_text_detection_boxes(filter_data *tf, cv::Size imageSize)
 {
 	// extract the text detection boxes
 	tesseract::ResultIterator *ri = tf->tesseract_model->GetIterator();
 	if (ri == nullptr) {
-		return std::vector<std::vector<cv::Point>>();
+		return std::vector<OCRBox>();
 	}
 	tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
 	if (tf->pageSegmentationMode == tesseract::PSM_SINGLE_CHAR) {
 		level = tesseract::RIL_SYMBOL;
 	}
-	std::vector<std::vector<cv::Point>> boxes;
+	std::vector<OCRBox> boxes;
 	do {
 		if (ri->Empty(level)) {
 			continue;
@@ -204,13 +205,13 @@ std::vector<std::vector<cv::Point>> extract_text_detection_boxes(filter_data *tf
 				continue;
 			}
 		}
-		std::vector<cv::Point> box(4);
+		OCRBox box;
 		int left, top, right, bottom;
 		ri->BoundingBox(level, &left, &top, &right, &bottom);
-		box[0] = cv::Point(left, top);
-		box[1] = cv::Point(right, top);
-		box[2] = cv::Point(right, bottom);
-		box[3] = cv::Point(left, bottom);
+		box.box = cv::Rect(left, top, right - left, bottom - top);
+		// get the text of the box
+		const char *text = ri->GetUTF8Text(level);
+		box.text = text;
 		// get area of box
 		const int area = (right - left) * (bottom - top);
 		// if the area is too small or too big, relative to the image size - skip the box
@@ -415,19 +416,45 @@ void tesseract_thread(void *data)
 				std::string ocr_result = run_tesseract_ocr(tf, imageForOCR);
 
 				if (is_valid_output_source_name(tf->output_image_source_name)) {
+					cv::Mat text_detection_output(imageBGRA.rows,
+								      imageBGRA.cols, CV_8UC4,
+								      cv::Scalar(0, 0, 0, 0));
+
 					// Extract the text detection boxes
-					std::vector<std::vector<cv::Point>> boxes =
+					std::vector<OCRBox> boxes =
 						extract_text_detection_boxes(tf, imageBGRA.size());
 
-					// Create a text detection binary mask
-					cv::Mat text_detection_mask(imageBGRA.rows, imageBGRA.cols,
-								    CV_8UC1, cv::Scalar(0));
-					for (const std::vector<cv::Point> &box : boxes) {
-						cv::fillConvexPoly(text_detection_mask, box,
-								   cv::Scalar(255));
+					if (tf->output_image_option ==
+					    OUTPUT_IMAGE_OPTION_TEXT_OVERLAY) {
+						// Create a text overlay image
+						QImage text_overlay_image =
+							render_boxes_with_qtextdocument(
+								boxes, imageBGRA.cols,
+								imageBGRA.rows);
+						cv::Mat text_overlay_image_mat(
+							text_overlay_image.height(),
+							text_overlay_image.width(), CV_8UC4,
+							text_overlay_image.bits(),
+							text_overlay_image.bytesPerLine());
+						text_overlay_image_mat.copyTo(
+							text_detection_output);
+						// } else if (tf->output_image_option ==
+						// 	   OUTPUT_IMAGE_OPTION_TEXT_BACKGROUND) {
+						// 	// Draw the text detection boxes on the image with a background
+
+					} else {
+						text_detection_output.setTo(
+							cv::Scalar(0, 0, 0, 255));
+
+						// Create a text detection binary mask
+						for (const auto &box : boxes) {
+							cv::rectangle(
+								text_detection_output, box.box,
+								cv::Scalar(255, 255, 255, 255), -1);
+						}
 					}
 
-					setTextDetectionMaskCallback(text_detection_mask, tf);
+					setTextDetectionMaskCallback(text_detection_output, tf);
 				}
 
 				if (!ocr_result.empty() &&
