@@ -83,11 +83,11 @@ obs_properties_t *ocr_filter_properties(void *data)
 
 	// scan the tessdata folder for files using std::filesystem
 	std::string tessdata_folder = obs_module_file("tessdata");
-	obs_log(LOG_INFO, "Scanning tessdata folder: %s", tessdata_folder.c_str());
+	obs_log(LOG_DEBUG, "Scanning tessdata folder: %s", tessdata_folder.c_str());
 	for (const auto &entry : std::filesystem::directory_iterator(tessdata_folder)) {
 		std::string filename = entry.path().filename().string();
 		if (filename.find(".traineddata") != std::string::npos) {
-			obs_log(LOG_INFO, "Found traineddata file: %s", filename.c_str());
+			obs_log(LOG_DEBUG, "Found traineddata file: %s", filename.c_str());
 			std::string language = filename.substr(0, filename.find(".traineddata"));
 			obs_property_list_add_string(lang_list, language.c_str(), language.c_str());
 		}
@@ -295,9 +295,8 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "rescale_target_size", 35);
 	obs_data_set_default_string(settings, "text_sources", "none");
 	obs_data_set_default_string(settings, "text_detection_mask_sources", "none");
-	obs_data_set_default_string(
-		settings, "char_whitelist",
-		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:;!?-()[]{}<>|/@#$%&*+=_~ ");
+	obs_data_set_default_string(settings, "char_whitelist",
+				    WHITELIST_CHARS_ENGLISH); // default to english characters
 	obs_data_set_default_int(settings, "conf_threshold", 50);
 	obs_data_set_default_bool(settings, "enable_smoothing", false);
 	obs_data_set_default_int(settings, "word_length", 5);
