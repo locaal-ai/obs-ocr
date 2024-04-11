@@ -159,9 +159,9 @@ void setTextCallback(const std::string &str, struct filter_data *usd)
 	obs_source_release(target);
 };
 
-void setTextDetectionMaskCallback(const cv::Mat &mask, struct filter_data *usd)
+void setTextDetectionMaskCallback(const cv::Mat &mask_rgba, struct filter_data *usd)
 {
-	UNUSED_PARAMETER(mask);
+	UNUSED_PARAMETER(mask_rgba);
 	if (!usd->output_source_mutex) {
 		obs_log(LOG_ERROR, "output_source_mutex is null");
 		return;
@@ -191,7 +191,7 @@ void setTextDetectionMaskCallback(const cv::Mat &mask, struct filter_data *usd)
 	std::string config_folder = obs_module_config_path("");
 	std::string filename = config_folder + "/" + usd->unique_id + ".png";
 	// write the file
-	write_png_file(filename.c_str(), mask.data, mask.cols, mask.rows);
+	write_png_file_rgba(filename.c_str(), mask_rgba.data, mask_rgba.cols, mask_rgba.rows);
 
 	// set the image source settings
 	auto image_settings = obs_source_get_settings(target);
@@ -301,9 +301,18 @@ void check_plugin_config_folder_exists()
 	}
 }
 
-void write_png_file(const char *filename, const unsigned char *image8uc1, int width, int height)
+void write_png_file_8uc1(const char *filename, const unsigned char *image8uc1, int width,
+			 int height)
 {
 	QImage image(image8uc1, width, height, QImage::Format_Grayscale8);
+	QString qfilename(filename);
+	image.save(qfilename);
+}
+
+void write_png_file_rgba(const char *filename, const unsigned char *imageRGBA, int width,
+			 int height)
+{
+	QImage image(imageRGBA, width, height, QImage::Format_RGBA8888);
 	QString qfilename(filename);
 	image.save(qfilename);
 }

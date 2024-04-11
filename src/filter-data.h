@@ -53,6 +53,7 @@ struct filter_data {
 	std::string output_format_template;
 	bool update_on_change;
 	int update_on_change_threshold;
+	int output_image_option;
 
 	bool isDisabled;
 
