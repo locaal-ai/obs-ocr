@@ -278,8 +278,7 @@ obs_properties_t *ocr_filter_properties(void *data)
 	// add change callback for the image sources
 	obs_property_set_modified_callback(
 		obs_properties_get(props, "text_detection_mask_sources"),
-		[](obs_properties_t *props_modified, obs_property_t *property,
-		   obs_data_t *settings) {
+		[](obs_properties_t *props_modified, obs_property_t *, obs_data_t *settings) {
 			// hide/show the image_output_option property based on the selected image source
 			bool show_image_output_option =
 				strcmp(obs_data_get_string(settings, "text_detection_mask_sources"),

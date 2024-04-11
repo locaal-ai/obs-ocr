@@ -1,6 +1,7 @@
 #include "text-render-helper.h"
 
-#include <QtWidgets>
+#include <QPainter>
+#include <QPixmap>
 
 /**
   * Render text to a buffer using QTextDocument
