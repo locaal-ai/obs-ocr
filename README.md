@@ -48,12 +48,14 @@ OCR Plugin enables many use cases for enhancing your stream or recording:
 Available now:
  - Add OCR Filter to any source with image or video output
  - Choose from Scoreboard model or English, French, Spanish, German, Chinese, Japanese, Arabic, Turkish, Portugese, Hindi, Russian and Italian
- - Output OCR result to an OBS Text Source
  - Choose the segmentation mode: Word, Line, Page, etc.
  - "Semantic Smoothing": getting more consistent outputs with higher accuracy and confidence by "averaging" several text outputs
  - Timing/Running modes: per X-milliseconds
+ - Output OCR result to an OBS Text Source
+ - Output to a text file (with/out aggregation)
  - Output formatting (with inja): e.g. "Score: {{score}}"
- - Output text detection to image source
+ - Output text detection to image source (draws boxes, text, etc.)
+ - Output to settings (e.g. for other plugins to use as triggers)
  - Binarization methods (threshold, Otsu, Triangle, adaptive)
  - Image Dilation
  - Rescale (optimal Tesseract performance is at 35 pixels / character)
@@ -62,7 +64,7 @@ Coming soon:
  - More languages built-in (pretrained Tesseract models)
  - Allowing external model files
  - More output capabilities e.g. Parsing, websocket event, etc.
- - Extracting text from complex image layouts
+ - Detection area selection (to prevent using Crop/Pad Filter)
  - Different timing/run modes: per X-frames, image change, etc.
  - Image stabilization
  - Optical flow tracking for fast moving text

@@ -130,6 +130,11 @@ void setTextCallback(const std::string &str_in, struct filter_data *usd)
 		str = std::regex_replace(str, std::regex(" +"), " ");
 	}
 
+	// update internal settings
+	auto internal_source_settings = obs_source_get_settings(usd->source);
+	obs_data_set_string(internal_source_settings, "current_output", str.c_str());
+	obs_data_release(internal_source_settings);
+
 	// check if save_to_file is selected
 	if (strcmp(usd->output_source_name, "!!save_to_file!!") == 0) {
 		// save_to_file is selected, write the text to a file

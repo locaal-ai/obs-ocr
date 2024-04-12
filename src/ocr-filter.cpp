@@ -119,7 +119,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 			      "update_on_change", "binarization_mode", "preview_binarization",
 			      "binarization_threshold", "binarization_block_size", "rescale_image",
 			      "rescale_target_size", "update_on_change_threshold",
-			      "dilation_iterations", "output_flatten", "char_whitelist_preset"}) {
+			      "dilation_iterations", "output_flatten", "char_whitelist_preset",
+			      "current_output"}) {
 				obs_property_set_visible(obs_properties_get(props_modified, prop),
 							 advanced_settings);
 			}
@@ -347,6 +348,11 @@ obs_properties_t *ocr_filter_properties(void *data)
 				  OUTPUT_IMAGE_OPTION_TEXT_OVERLAY);
 	obs_property_list_add_int(output_format, obs_module_text("TextWithBackground"),
 				  OUTPUT_IMAGE_OPTION_TEXT_BACKGROUND);
+
+	// add current output text box, disabled by default
+	obs_properties_add_text(props, "current_output", obs_module_text("current_output"),
+				OBS_TEXT_DEFAULT);
+	obs_property_set_enabled(obs_properties_get(props, "current_output"), false);
 
 	// Add a informative text about the plugin
 	obs_properties_add_text(
