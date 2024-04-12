@@ -425,24 +425,7 @@ void tesseract_thread(void *data)
 						extract_text_detection_boxes(tf, imageBGRA.size());
 
 					if (tf->output_image_option ==
-					    OUTPUT_IMAGE_OPTION_TEXT_OVERLAY) {
-						// Create a text overlay image
-						QImage text_overlay_image =
-							render_boxes_with_qtextdocument(
-								boxes, imageBGRA.cols,
-								imageBGRA.rows);
-						cv::Mat text_overlay_image_mat(
-							text_overlay_image.height(),
-							text_overlay_image.width(), CV_8UC4,
-							text_overlay_image.bits(),
-							text_overlay_image.bytesPerLine());
-						text_overlay_image_mat.copyTo(
-							text_detection_output);
-						// } else if (tf->output_image_option ==
-						// 	   OUTPUT_IMAGE_OPTION_TEXT_BACKGROUND) {
-						// 	// Draw the text detection boxes on the image with a background
-
-					} else {
+					    OUTPUT_IMAGE_OPTION_DETECTION_MASK) {
 						text_detection_output.setTo(
 							cv::Scalar(0, 0, 0, 255));
 
@@ -452,6 +435,19 @@ void tesseract_thread(void *data)
 								text_detection_output, box.box,
 								cv::Scalar(255, 255, 255, 255), -1);
 						}
+					} else {
+						// Create a text overlay image
+						QImage text_overlay_image = render_boxes_with_qtextdocument(
+							boxes, imageBGRA.cols, imageBGRA.rows,
+							tf->output_image_option ==
+								OUTPUT_IMAGE_OPTION_TEXT_BACKGROUND);
+						cv::Mat text_overlay_image_mat(
+							text_overlay_image.height(),
+							text_overlay_image.width(), CV_8UC4,
+							text_overlay_image.bits(),
+							text_overlay_image.bytesPerLine());
+						text_overlay_image_mat.copyTo(
+							text_detection_output);
 					}
 
 					setTextDetectionMaskCallback(text_detection_output, tf);
