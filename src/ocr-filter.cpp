@@ -119,7 +119,7 @@ obs_properties_t *ocr_filter_properties(void *data)
 			      "update_on_change", "binarization_mode", "preview_binarization",
 			      "binarization_threshold", "binarization_block_size", "rescale_image",
 			      "rescale_target_size", "update_on_change_threshold",
-			      "dilation_iterations"}) {
+			      "dilation_iterations", "output_flatten", "char_whitelist_preset"}) {
 				obs_property_set_visible(obs_properties_get(props_modified, prop),
 							 advanced_settings);
 			}
@@ -204,6 +204,48 @@ obs_properties_t *ocr_filter_properties(void *data)
 			return true;
 		});
 
+	// add preset selector for char whitelist
+	obs_property_t *char_whitelist_preset = obs_properties_add_list(
+		props, "char_whitelist_preset", obs_module_text("CharWhitelistPreset"),
+		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("SelectPresets"),
+				     "none");
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("English"),
+				     WHITELIST_CHARS_ENGLISH);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("NumericPunctuation"),
+				     WHITELIST_CHARS_NUMERIC);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("French"),
+				     WHITELIST_CHARS_FRENCH);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("German"),
+				     WHITELIST_CHARS_GERMAN);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("Spanish"),
+				     WHITELIST_CHARS_SPANISH);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("Italian"),
+				     WHITELIST_CHARS_ITALIAN);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("Portuguese"),
+				     WHITELIST_CHARS_PORTUGUESE);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("Cyrillic"),
+				     WHITELIST_CHARS_RUSSIAN);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("Japanese"),
+				     WHITELIST_CHARS_JAPANESE);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("Hindi"),
+				     WHITELIST_CHARS_HINDI);
+	obs_property_list_add_string(char_whitelist_preset, obs_module_text("Arabic"),
+				     WHITELIST_CHARS_ARABIC);
+	// add callback to set the char whitelist based on the selected preset
+	obs_property_set_modified_callback(
+		obs_properties_get(props, "char_whitelist_preset"),
+		[](obs_properties_t *props_modified, obs_property_t *property,
+		   obs_data_t *settings) {
+			const char *selected_preset =
+				obs_data_get_string(settings, "char_whitelist_preset");
+			if (strcmp(selected_preset, "none") != 0) {
+				obs_data_set_string(settings, "char_whitelist", selected_preset);
+			}
+			UNUSED_PARAMETER(property);
+			return true;
+		});
+
 	// Add character whitelist
 	obs_properties_add_text(props, "char_whitelist", obs_module_text("CharWhitelist"),
 				OBS_TEXT_DEFAULT);
@@ -219,7 +261,6 @@ obs_properties_t *ocr_filter_properties(void *data)
 				      1);
 	obs_properties_add_int_slider(props, "window_size", obs_module_text("WindowSize"), 1, 20,
 				      1);
-
 	obs_property_set_modified_callback(enable_smoothing_property, enable_smoothing_modified);
 
 	// Output formatting
@@ -227,6 +268,9 @@ obs_properties_t *ocr_filter_properties(void *data)
 				OBS_TEXT_MULTILINE);
 	// hide the output formatting property by default
 	obs_property_set_visible(obs_properties_get(props, "output_formatting"), false);
+
+	// add option to "flatten" the output text to a single line
+	obs_properties_add_bool(props, "output_flatten", obs_module_text("OutputFlatten"));
 
 	// Add a property for the output text source
 	obs_property_t *text_sources =
@@ -244,6 +288,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 	// Add an option to set the output file path
 	obs_properties_add_path(props, "output_file_path", obs_module_text("OutputFilePath"),
 				OBS_PATH_FILE, nullptr, nullptr);
+	// add an option to control output file aggegation / "append" mode
+	obs_properties_add_bool(props, "output_file_append", obs_module_text("OutputFileAppend"));
 
 	// add callback to enable or disable the output file path property
 	obs_property_set_modified_callback(
@@ -254,6 +300,9 @@ obs_properties_t *ocr_filter_properties(void *data)
 						   "!!save_to_file!!") == 0;
 			obs_property_set_visible(obs_properties_get(props_modified,
 								    "output_file_path"),
+						 save_to_file);
+			obs_property_set_visible(obs_properties_get(props_modified,
+								    "output_file_append"),
 						 save_to_file);
 			// show/hide "output_formatting" property based on the selected output source
 			bool show_output_formatting =
@@ -317,13 +366,13 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "update_on_change_threshold", 15);
 	obs_data_set_default_string(settings, "language", "eng");
 	obs_data_set_default_bool(settings, "advanced_settings", false);
-	obs_data_set_default_int(settings, "page_segmentation_mode", tesseract::PSM_SINGLE_WORD);
+	obs_data_set_default_int(settings, "page_segmentation_mode", tesseract::PSM_AUTO);
 	obs_data_set_default_int(settings, "binarization_mode", 0);
 	obs_data_set_default_int(settings, "binarization_threshold", 127);
 	obs_data_set_default_int(settings, "binarization_block_size", 15);
 	obs_data_set_default_bool(settings, "preview_binarization", false);
 	obs_data_set_default_int(settings, "dilation_iterations", 0);
-	obs_data_set_default_bool(settings, "rescale_image", true);
+	obs_data_set_default_bool(settings, "rescale_image", false);
 	obs_data_set_default_int(settings, "rescale_target_size", 35);
 	obs_data_set_default_string(settings, "text_sources", "none");
 	obs_data_set_default_string(settings, "text_detection_mask_sources", "none");
@@ -335,6 +384,8 @@ void ocr_filter_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "window_size", 10);
 	obs_data_set_default_string(settings, "output_formatting", "{{output}}");
 	obs_data_set_default_int(settings, "image_output_option", 0);
+	obs_data_set_default_bool(settings, "output_file_append", false);
+	obs_data_set_default_bool(settings, "output_flatten", false);
 }
 
 void ocr_filter_update(void *data, obs_data_t *settings)
@@ -374,6 +425,8 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->update_on_change_threshold =
 		(int)obs_data_get_int(settings, "update_on_change_threshold");
 	tf->output_image_option = (int)obs_data_get_int(settings, "image_output_option");
+	tf->output_file_append = obs_data_get_bool(settings, "output_file_append");
+	tf->output_flatten = obs_data_get_bool(settings, "output_flatten");
 
 	// Initialize the Tesseract OCR model
 	initialize_tesseract_ocr(tf, hard_tesseract_init_required);

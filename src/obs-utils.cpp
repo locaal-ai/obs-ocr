@@ -13,6 +13,7 @@
 #include <mutex>
 #include <opencv2/imgproc.hpp>
 #include <fstream>
+#include <regex>
 
 /**
   * @brief Get RGBA from the stage surface
@@ -111,21 +112,34 @@ void acquire_weak_output_source_ref(struct filter_data *usd, char *output_source
 	}
 }
 
-void setTextCallback(const std::string &str, struct filter_data *usd)
+void setTextCallback(const std::string &str_in, struct filter_data *usd)
 {
 	if (!usd->output_source_mutex) {
 		obs_log(LOG_ERROR, "output_source_mutex is null");
 		return;
 	}
 
+	std::string str = str_in;
+	if (usd->output_flatten) {
+		// remove newlines and tabs, replace with spaces
+		std::replace(str.begin(), str.end(), '\n', ' ');
+		std::replace(str.begin(), str.end(), '\t', ' ');
+		std::replace(str.begin(), str.end(), '\r', ' ');
+
+		// remove multiple spaces
+		str = std::regex_replace(str, std::regex(" +"), " ");
+	}
+
 	// check if save_to_file is selected
 	if (strcmp(usd->output_source_name, "!!save_to_file!!") == 0) {
 		// save_to_file is selected, write the text to a file
 		if (usd->output_file_path.empty()) {
-			obs_log(LOG_ERROR, "output_file_path is empty");
 			return;
 		}
-		std::ofstream file(usd->output_file_path);
+		// append flag according to tf->output_file_append
+		std::ofstream file(usd->output_file_path, usd->output_file_append
+								  ? std::ios_base::app
+								  : std::ios_base::trunc);
 		if (!file.is_open()) {
 			obs_log(LOG_ERROR, "failed to open file %s", usd->output_file_path.c_str());
 			return;

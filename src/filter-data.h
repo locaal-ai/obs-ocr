@@ -54,6 +54,8 @@ struct filter_data {
 	bool update_on_change;
 	int update_on_change_threshold;
 	int output_image_option;
+	bool output_file_append;
+	bool output_flatten;
 
 	bool isDisabled;
 

@@ -22,8 +22,8 @@ QImage render_boxes_with_qtextdocument(const std::vector<OCRBox> &boxes, uint32_
 
 	// draw individual boxes on the pixmap
 	for (const OCRBox &box : boxes) {
-        if (add_background) {
-            painter.setBrush(Qt::white);
+		if (add_background) {
+			painter.setBrush(Qt::white);
 			painter.fillRect(box.box.x, box.box.y, box.box.width, box.box.height,
 					 Qt::white);
 		}
