@@ -12,7 +12,7 @@
 	* @param css_props CSS properties to apply to the text
   */
 QImage render_boxes_with_qtextdocument(const std::vector<OCRBox> &boxes, uint32_t width,
-				       uint32_t height)
+				       uint32_t height, bool add_background)
 {
 	QPixmap pixmap(width, height);
 	pixmap.fill(Qt::transparent);
@@ -22,6 +22,11 @@ QImage render_boxes_with_qtextdocument(const std::vector<OCRBox> &boxes, uint32_
 
 	// draw individual boxes on the pixmap
 	for (const OCRBox &box : boxes) {
+        if (add_background) {
+            painter.setBrush(Qt::white);
+			painter.fillRect(box.box.x, box.box.y, box.box.width, box.box.height,
+					 Qt::white);
+		}
 		painter.setPen(Qt::blue);
 		// set the character size according to the box height
 		QFont font = painter.font();
