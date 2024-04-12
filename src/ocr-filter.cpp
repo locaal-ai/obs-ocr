@@ -235,8 +235,7 @@ obs_properties_t *ocr_filter_properties(void *data)
 	// add callback to set the char whitelist based on the selected preset
 	obs_property_set_modified_callback(
 		obs_properties_get(props, "char_whitelist_preset"),
-		[](obs_properties_t *props_modified, obs_property_t *property,
-		   obs_data_t *settings) {
+		[](obs_properties_t *, obs_property_t *property, obs_data_t *settings) {
 			const char *selected_preset =
 				obs_data_get_string(settings, "char_whitelist_preset");
 			if (strcmp(selected_preset, "none") != 0) {
