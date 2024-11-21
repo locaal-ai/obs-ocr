@@ -32,6 +32,7 @@ set(_obs_gcc_c_options
     -Wno-unused-function
     -Wno-unused-label
     -Wparentheses
+    -Wshadow
     -Wuninitialized
     -Wunreachable-code
     -Wunused-parameter
