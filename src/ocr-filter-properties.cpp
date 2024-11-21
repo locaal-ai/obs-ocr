@@ -385,9 +385,8 @@ obs_properties_t *ocr_filter_properties(void *data)
 
 	// add a checkable group for crop region settings
 	obs_properties_t *crop_group_props = obs_properties_create();
-	obs_property_t *crop_group = obs_properties_add_group(props, "crop_group",
-							      obs_module_text("CropGroup"),
-							      OBS_GROUP_NORMAL, crop_group_props);
+	obs_properties_add_group(props, "crop_group", obs_module_text("CropGroup"),
+				 OBS_GROUP_NORMAL, crop_group_props);
 
 	// add crop region settings
 	obs_properties_add_int_slider(crop_group_props, "crop_left", obs_module_text("CropLeft"), 0,

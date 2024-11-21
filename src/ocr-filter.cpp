@@ -72,10 +72,6 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 	tf->cropRegionRelative.height =
 		-(int)obs_data_get_int(settings, "crop_bottom") - tf->cropRegionRelative.y;
 
-	obs_log(LOG_INFO, "crop region: %d %d %d %d", tf->cropRegionRelative.x,
-		tf->cropRegionRelative.y, tf->cropRegionRelative.width,
-		tf->cropRegionRelative.height);
-
 	// Initialize the Tesseract OCR model
 	initialize_tesseract_ocr(tf, hard_tesseract_init_required);
 }
