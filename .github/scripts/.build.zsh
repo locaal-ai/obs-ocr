@@ -68,7 +68,6 @@ build() {
   local config='RelWithDebInfo'
   local -r -a _valid_configs=(Debug RelWithDebInfo Release MinSizeRel)
   local -i codesign=0
-  local -a extra_cmake_args=()
 
   if [[ ${host_os} == linux ]] {
     local -r -a _valid_generators=(Ninja 'Unix Makefiles')
@@ -146,10 +145,6 @@ ${_usage_host:-}"
         config=${2}
         shift 2
         ;;
-      -e|--extra-cmake-args)
-        extra_cmake_args+=(${2})
-        shift 2
-        ;;
       -s|--codesign) codesign=1; shift ;;
       -q|--quiet) (( verbosity -= 1 )) || true; shift ;;
       -v|--verbose) (( verbosity += 1 )); shift ;;
@@ -202,7 +197,7 @@ ${_usage_host:-}"
   if (( ! (${skips[(Ie)all]} + ${skips[(Ie)build]}) )) {
     log_group "Configuring ${product_name}..."
 
-    local -a cmake_args=(${extra_cmake_args})
+    local -a cmake_args=()
     local -a cmake_build_args=(--build)
     local -a cmake_install_args=(--install)
 

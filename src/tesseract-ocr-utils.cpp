@@ -334,13 +334,7 @@ void tesseract_thread(void *data)
 					imageBGRA.rows + tf->cropRegionRelative.height);
 				if (cropRegion.width < imageBGRA.cols ||
 				    cropRegion.height < imageBGRA.rows) {
-					obs_log(LOG_INFO, "Crop region: %d %d %d %d", cropRegion.x,
-						cropRegion.y, cropRegion.width, cropRegion.height);
-					obs_log(LOG_INFO, "Image size: %d %d", imageBGRA.cols,
-						imageBGRA.rows);
 					imageBGRA = imageBGRA(cropRegion).clone();
-					obs_log(LOG_INFO, "Cropped image size: %d %d",
-						imageBGRA.cols, imageBGRA.rows);
 				}
 
 				// if update on change is true check if the image has changed
