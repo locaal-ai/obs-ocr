@@ -389,14 +389,14 @@ obs_properties_t *ocr_filter_properties(void *data)
 				 OBS_GROUP_NORMAL, crop_group_props);
 
 	// add crop region settings
-	obs_properties_add_int_slider(crop_group_props, "crop_left", obs_module_text("CropLeft"), 0,
-				      1000, 1);
-	obs_properties_add_int_slider(crop_group_props, "crop_right", obs_module_text("CropRight"),
-				      0, 1000, 1);
-	obs_properties_add_int_slider(crop_group_props, "crop_top", obs_module_text("CropTop"), 0,
-				      1000, 1);
-	obs_properties_add_int_slider(crop_group_props, "crop_bottom",
-				      obs_module_text("CropBottom"), 0, 1000, 1);
+	obs_properties_add_int(crop_group_props, "crop_left", obs_module_text("CropLeft"), 0, 2000,
+			       1);
+	obs_properties_add_int(crop_group_props, "crop_right", obs_module_text("CropRight"), 0,
+			       2000, 1);
+	obs_properties_add_int(crop_group_props, "crop_top", obs_module_text("CropTop"), 0, 2000,
+			       1);
+	obs_properties_add_int(crop_group_props, "crop_bottom", obs_module_text("CropBottom"), 0,
+			       2000, 1);
 
 	// Add a informative text about the plugin
 	obs_properties_add_text(
