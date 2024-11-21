@@ -50,6 +50,8 @@ void cleanup_config_files(const std::string &unique_id)
 void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required)
 {
 	try {
+		std::lock_guard<std::mutex> lock(tf->tesseract_settings_mutex);
+
 		if (hard_tesseract_init_required) {
 			stop_and_join_tesseract_thread(tf);
 			if (tf->tesseract_model != nullptr) {
@@ -58,8 +60,6 @@ void initialize_tesseract_ocr(filter_data *tf, bool hard_tesseract_init_required
 				tf->tesseract_model = nullptr;
 			}
 		}
-
-		std::lock_guard<std::mutex> lock(tf->tesseract_settings_mutex);
 
 		char **configs = nullptr;
 		int configs_size = 0;
@@ -154,6 +154,8 @@ std::string strip(const std::string &str)
 
 std::string run_tesseract_ocr(filter_data *tf, const cv::Mat &image)
 {
+	std::lock_guard<std::mutex> lock(tf->tesseract_settings_mutex);
+
 	// run the tesseract model
 	tf->tesseract_model->SetImage(image.data, image.cols, image.rows, image.channels(),
 				      (int)image.step);
@@ -325,7 +327,15 @@ void tesseract_thread(void *data)
 
 		if (!imageBGRA.empty()) {
 			try {
-				std::lock_guard<std::mutex> lock(tf->tesseract_settings_mutex);
+				// if there is any crop region set, apply it
+				cv::Rect2i cropRegion(
+					tf->cropRegionRelative.x, tf->cropRegionRelative.y,
+					imageBGRA.cols + tf->cropRegionRelative.width,
+					imageBGRA.rows + tf->cropRegionRelative.height);
+				if (cropRegion.width < imageBGRA.cols ||
+				    cropRegion.height < imageBGRA.rows) {
+					imageBGRA = imageBGRA(cropRegion).clone();
+				}
 
 				// if update on change is true check if the image has changed
 				if (tf->update_on_change &&

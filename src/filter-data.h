@@ -31,6 +31,7 @@ struct filter_data {
 	cv::Mat inputBGRA;
 	cv::Mat lastInputBGRA;
 	cv::Mat outputPreviewBGRA;
+	cv::Rect2i cropRegionRelative;
 	gs_texture_t *outputPreviewTexture = nullptr;
 	tesseract::TessBaseAPI *tesseract_model;
 	std::string language;
