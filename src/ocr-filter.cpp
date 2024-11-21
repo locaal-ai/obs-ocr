@@ -277,13 +277,24 @@ obs_properties_t *ocr_filter_properties(void *data)
 		obs_properties_add_list(props, "text_sources", obs_module_text("OutputTextSource"),
 					OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
 
+	obs_enum_sources(
+		[](void *data, obs_source_t *source) -> bool {
+			obs_property_t *text_sources = (obs_property_t *)data;
+			const char *source_type = obs_source_get_id(source);
+			if (strstr(source_type, "text") != NULL) {
+				const char *name = obs_source_get_name(source);
+				obs_property_list_add_string(text_sources, name, name);
+			}
+
+			return true;
+		},
+		text_sources);
+
 	// Add a "none" option
 	obs_property_list_add_string(text_sources, obs_module_text("NoOutput"), "none");
 	// Add a "save to file" option
 	obs_property_list_add_string(text_sources, obs_module_text("SaveToFile"),
 				     "!!save_to_file!!");
-	// Add the sources
-	obs_enum_sources(add_text_sources_to_list, text_sources);
 
 	// Add an option to set the output file path
 	obs_properties_add_path(props, "output_file_path", obs_module_text("OutputFilePath"),
