@@ -216,7 +216,7 @@ void ocr_filter_video_render(void *data, gs_effect_t *_effect)
 		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
 
 		while (gs_effect_loop(tf->effect, "MyDraw")) {
-			gs_draw_sprite(tex, 0, 0, 0);
+			gs_draw_sprite(tex, 0, width, height);
 		}
 
 		gs_blend_state_pop();
