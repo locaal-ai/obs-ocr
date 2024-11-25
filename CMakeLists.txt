@@ -85,6 +85,7 @@ target_sources(
           src/obs-utils.cpp
           src/tesseract-ocr-utils.cpp
           src/ocr-filter.cpp
+          src/ocr-filter-callbacks.cpp
           src/ocr-filter-info.c
           src/text-render-helper.cpp)
 
