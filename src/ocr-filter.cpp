@@ -17,6 +17,7 @@
 #include "consts.h"
 #include "tesseract-ocr-utils.h"
 #include "ocr-filter.h"
+#include "ocr-filter-callbacks.h"
 
 const char *ocr_filter_getname(void *unused)
 {
@@ -79,12 +80,14 @@ void ocr_filter_update(void *data, obs_data_t *settings)
 void ocr_filter_activate(void *data)
 {
 	struct filter_data *tf = reinterpret_cast<filter_data *>(data);
+	obs_log(LOG_INFO, "ocr_filter_activate");
 	tf->isDisabled = false;
 }
 
 void ocr_filter_deactivate(void *data)
 {
 	struct filter_data *tf = reinterpret_cast<filter_data *>(data);
+	obs_log(LOG_INFO, "ocr_filter_deactivate");
 	tf->isDisabled = true;
 }
 
@@ -119,12 +122,24 @@ void *ocr_filter_create(obs_data_t *settings, obs_source_t *source)
 
 	ocr_filter_update(tf, settings);
 
+	signal_handler_t *sh_filter = obs_source_get_signal_handler(tf->source);
+	if (sh_filter == nullptr) {
+		obs_log(LOG_ERROR, "Failed to get signal handler");
+		tf->isDisabled = true;
+		return nullptr;
+	}
+
+	signal_handler_connect(sh_filter, "enable", enable_callback, tf);
+
 	return tf;
 }
 
 void ocr_filter_destroy(void *data)
 {
 	struct filter_data *tf = reinterpret_cast<filter_data *>(data);
+
+	signal_handler_t *sh_filter = obs_source_get_signal_handler(tf->source);
+	signal_handler_disconnect(sh_filter, "enable", enable_callback, tf);
 
 	if (tf) {
 		obs_enter_graphics();
