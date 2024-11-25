@@ -202,21 +202,12 @@ void ocr_filter_video_render(void *data, gs_effect_t *_effect)
 
 		gs_eparam_t *imageParam = gs_effect_get_param_by_name(tf->effect, "myimage");
 		gs_effect_set_texture(imageParam, tex);
-		vec2 sourceSize = {static_cast<float>(width), static_cast<float>(height)};
-		gs_effect_set_vec2(gs_effect_get_param_by_name(tf->effect, "source_size"),
-				   &sourceSize);
-		vec2 texSize = {static_cast<float>(tf->outputPreviewBGRA.cols),
-				static_cast<float>(tf->outputPreviewBGRA.rows)};
-		gs_effect_set_vec2(gs_effect_get_param_by_name(tf->effect, "image_size"), &texSize);
-
-		obs_log(LOG_INFO, "tex size %f %f", texSize.x, texSize.y);
-		obs_log(LOG_INFO, "source size %f %f", sourceSize.x, sourceSize.y);
 
 		gs_blend_state_push();
 		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
 
 		while (gs_effect_loop(tf->effect, "MyDraw")) {
-			gs_draw_sprite(tex, 0, width, height);
+			gs_draw_sprite(tex, 0, 0, 0);
 		}
 
 		gs_blend_state_pop();

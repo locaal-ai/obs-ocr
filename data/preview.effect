@@ -1,8 +1,6 @@
 uniform float4x4 ViewProj;
 uniform texture2d image;
 uniform texture2d myimage;
-uniform float2 source_size;
-uniform float2 image_size;
 
 sampler_state def_sampler {
 	Filter   = Linear;
@@ -25,28 +23,7 @@ VertInOut VSDefault(VertInOut vert_in)
 
 float4 PSDrawBare(VertInOut vert_in) : TARGET
 {
-    float2 scaled_uv;
-    
-    // Calculate aspect ratios
-    float target_aspect = source_size.x / source_size.y;
-    float image_aspect = image_size.x / image_size.y;
-    
-    // Scale to fit while maintaining aspect ratio
-    if (image_aspect < target_aspect) {
-        scaled_uv.y = vert_in.uv.y;
-		scaled_uv.x = (vert_in.uv.x * source_size.x) / image_size.x;
-    } else {
-        scaled_uv.x = vert_in.uv.x;
-		scaled_uv.y = (vert_in.uv.y * source_size.y) / image_size.y;
-    }
-    
-    // Sample texture if within bounds
-    if (scaled_uv.x >= 0.0 && scaled_uv.x <= 1.0 && 
-        scaled_uv.y >= 0.0 && scaled_uv.y <= 1.0) {
-        return float4(myimage.Sample(def_sampler, scaled_uv).bgr, 1.0);
-    }
-    
-    return float4(0.0, 0.0, 0.0, 0.0);
+    return float4(myimage.Sample(def_sampler, vert_in.uv).bgr, 1.0);
 }
 
 technique MyDraw
