@@ -221,11 +221,19 @@ void setTextDetectionMaskCallback(const cv::Mat &mask_rgba, struct filter_data *
 }
 
 bool add_sources_to_list(void *list_property, obs_source_t *source,
-			 const std::vector<std::string> &source_ids)
+			 const std::vector<std::string> &source_prefixes)
 {
 	// add all text and media sources to the list
 	auto source_id = obs_source_get_id(source);
-	if (std::find(source_ids.begin(), source_ids.end(), source_id) == source_ids.end()) {
+	bool is_valid_source = false;
+	for (const auto &prefix : source_prefixes) {
+		// check if source id begins with the prefix
+		if (strncmp(source_id, prefix.c_str(), prefix.size()) == 0) {
+			is_valid_source = true;
+			break;
+		}
+	}
+	if (!is_valid_source) {
 		return true;
 	}
 
@@ -237,8 +245,7 @@ bool add_sources_to_list(void *list_property, obs_source_t *source,
 
 bool add_text_sources_to_list(void *list_property, obs_source_t *source)
 {
-	return add_sources_to_list(list_property, source,
-				   {"text_ft2_source_v2", "text_gdiplus_v2"});
+	return add_sources_to_list(list_property, source, {"text_"});
 }
 
 bool add_image_sources_to_list(void *list_property, obs_source_t *source)

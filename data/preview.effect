@@ -23,7 +23,7 @@ VertInOut VSDefault(VertInOut vert_in)
 
 float4 PSDrawBare(VertInOut vert_in) : TARGET
 {
-	return float4(myimage.Sample(def_sampler, vert_in.uv).bgr, 1);
+    return float4(myimage.Sample(def_sampler, vert_in.uv).bgr, 1.0);
 }
 
 technique MyDraw

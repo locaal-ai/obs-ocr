@@ -2,9 +2,9 @@
 #define CONSTS_H
 
 const char *const PLUGIN_INFO_TEMPLATE =
-	"<a href=\"https://github.com/occ-ai/obs-ocr/\">OCR Plugin</a> (%1) by "
-	"<a href=\"https://github.com/occ-ai\">OCC AI</a> ❤️ "
-	"<a href=\"https://www.patreon.com/RoyShilkrot\">Support & Follow</a>";
+	"<a href=\"https://github.com/locaal-ai/obs-ocr/\">OCR Plugin</a> (%1) by "
+	"<a href=\"https://github.com/locaal-ai\">Locaal AI</a> ❤️ "
+	"<a href=\"https://locaal.ai\">Support & Follow</a>";
 
 const char *const WHITELIST_CHARS_ENGLISH =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;':\",./<>?`~\\ ";
