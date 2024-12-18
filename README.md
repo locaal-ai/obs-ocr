@@ -1,4 +1,6 @@
-# OCR - OBS Plugin
+# ⚠️ Stalled ⚠️ This project is not under active development
+
+## OCR - OBS Plugin
 
 <div align="center">
 
